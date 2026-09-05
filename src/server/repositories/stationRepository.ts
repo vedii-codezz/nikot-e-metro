@@ -1,6 +1,7 @@
 import { getDb, schema, isProductionEnvironment } from "../../db";
 import { METRO_STATIONS } from "../../data/stations";
-import { MetroStation } from "../../types/station";
+import { METRO_LINES } from "../../data/lines";
+import { MetroStation, StationConnection } from "../../types/station";
 import { haversineDistanceKm } from "../../lib/geo/haversine";
 import { Coordinates } from "../../types/geo";
 
@@ -27,14 +28,20 @@ export class StationRepository {
 
         const stationInterchanges = interchangeRecords
           .filter((ic) => ic.fromStationId === rec.id)
-          .map((ic) => ({
-            targetStationId: ic.toStationId,
-            targetLineId: "green" as any, // resolved during network graph traversal
-            estimatedTransferMinutes: ic.estimatedTransferSeconds
-              ? Math.round(ic.estimatedTransferSeconds / 60)
-              : 4,
-            confidence: ic.confidence as any,
-          }));
+          .map((ic) => {
+            const targetLineRecord = stationLineRecords.find(
+              (sl) => sl.stationId === ic.toStationId
+            );
+            return {
+              targetStationId: ic.toStationId,
+              targetLineId: (targetLineRecord?.lineId as any) || "blue",
+              estimatedTransferMinutes: ic.estimatedTransferSeconds
+                ? Math.round(ic.estimatedTransferSeconds / 60)
+                : 4,
+              confidence: ic.confidence as any,
+              routingStatus: (ic.routingStatus as any) || "operational",
+            };
+          });
 
         return {
           id: rec.id,
@@ -81,6 +88,83 @@ export class StationRepository {
 
     scored.sort((a, b) => a.distanceKm - b.distanceKm);
     return scored.slice(0, limit);
+  }
+
+  async getAllConnections(): Promise<StationConnection[]> {
+    const db = getDb();
+    if (!db) {
+      return this.getDefaultConnections();
+    }
+
+    try {
+      const records = await db.select().from(schema.stationConnections);
+      if (records.length === 0) {
+        return this.getDefaultConnections();
+      }
+
+      return records.map((r) => ({
+        id: r.id,
+        fromStationId: r.fromStationId,
+        toStationId: r.toStationId,
+        lineId: r.lineId as any,
+        distanceMeters: r.distanceMeters,
+        estimatedTravelSeconds: r.estimatedTravelSeconds ?? undefined,
+        verified: r.verified,
+        confidence: r.confidence as any,
+        routingStatus: (r.routingStatus as any) || "operational",
+      }));
+    } catch (error) {
+      if (isProductionEnvironment() && process.env.DATABASE_URL) {
+        console.error("[StationRepository] getAllConnections error:", error);
+        throw error;
+      }
+      return this.getDefaultConnections();
+    }
+  }
+
+  private getDefaultConnections(): StationConnection[] {
+    const conns: StationConnection[] = [];
+    for (const line of METRO_LINES) {
+      const lineStations = METRO_STATIONS.filter((s) => s.lineIds.includes(line.id));
+      for (let i = 0; i < lineStations.length - 1; i++) {
+        const u = lineStations[i];
+        const v = lineStations[i + 1];
+        const distKm = haversineDistanceKm(u.coordinates, v.coordinates);
+        const distMeters = Math.round(distKm * 1000);
+        const seconds = Math.round((distKm / 32.0) * 3600 + 30);
+        const isBowbazar =
+          line.id === "green" &&
+          ((u.id === "esplanade_green" && v.id === "sealdah") ||
+           (u.id === "sealdah" && v.id === "esplanade_green"));
+
+        const routingStatus = isBowbazar ? "planned" : "operational";
+
+        conns.push({
+          id: `conn_${line.id}_${u.id}_${v.id}`,
+          fromStationId: u.id,
+          toStationId: v.id,
+          lineId: line.id,
+          distanceMeters: distMeters,
+          estimatedTravelSeconds: seconds,
+          verified: u.confidence === "verified" && v.confidence === "verified",
+          confidence: u.confidence === "verified" && v.confidence === "verified" ? "verified" : "development",
+          routingStatus,
+        });
+
+        conns.push({
+          id: `conn_${line.id}_${v.id}_${u.id}`,
+          fromStationId: v.id,
+          toStationId: u.id,
+          lineId: line.id,
+          distanceMeters: distMeters,
+          estimatedTravelSeconds: seconds,
+          verified: u.confidence === "verified" && v.confidence === "verified",
+          confidence: u.confidence === "verified" && v.confidence === "verified" ? "verified" : "development",
+          routingStatus,
+        });
+      }
+    }
+    return conns;
   }
 }
 

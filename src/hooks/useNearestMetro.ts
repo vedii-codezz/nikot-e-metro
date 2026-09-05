@@ -11,20 +11,32 @@ export function useNearestMetro() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [isReranking, setIsReranking] = useState(false);
+
   // Fetch nearby stations from backend API whenever selectedLocation changes
   useEffect(() => {
     if (!selectedLocation) {
       setNearbyResults([]);
       setSelectedStation(null);
+      setIsLoading(false);
+      setIsReranking(false);
       return;
     }
 
     let isMounted = true;
-    setIsLoading(true);
     setError(null);
+
+    // 1. Progressive loading: immediately display local Haversine candidates
+    const instantCandidates = rankNearbyStations(selectedLocation.coordinates, METRO_STATIONS, 5);
+    setNearbyResults(instantCandidates);
+    if (instantCandidates.length > 0) {
+      setSelectedStation(instantCandidates[0].station);
+    }
+    setIsReranking(true);
 
     const { latitude, longitude } = selectedLocation.coordinates;
 
+    // 2. Fetch real pedestrian routed results from API and rerank
     fetch(`/api/stations/nearby?lat=${latitude}&lng=${longitude}&limit=5`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
@@ -33,22 +45,20 @@ export function useNearestMetro() {
       .then((data) => {
         if (!isMounted) return;
         const results: NearbyStationResult[] = data.data?.results || [];
-        setNearbyResults(results);
         if (results.length > 0) {
+          setNearbyResults(results);
           setSelectedStation(results[0].station);
         }
       })
-      .catch(() => {
-        // Fallback to local ranking if network or API is offline
-        if (!isMounted) return;
-        const fallback = rankNearbyStations(selectedLocation.coordinates, METRO_STATIONS, 5);
-        setNearbyResults(fallback);
-        if (fallback.length > 0) {
-          setSelectedStation(fallback[0].station);
-        }
+      .catch((err) => {
+        // Fallback already displayed
+        console.warn("[useNearestMetro] Pedestrian reranking failed, preserving proximity fallback:", err);
       })
       .finally(() => {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+          setIsReranking(false);
+        }
       });
 
     return () => {
@@ -81,6 +91,7 @@ export function useNearestMetro() {
     recommendedStation,
     secondaryStations,
     isLoading,
+    isReranking,
     error,
     setLocation,
     selectStation,

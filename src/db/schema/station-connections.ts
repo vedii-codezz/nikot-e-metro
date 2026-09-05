@@ -17,6 +17,7 @@ export const stationConnections = pgTable("station_connections", {
   estimatedTravelSeconds: integer("estimated_travel_seconds"),
   verified: boolean("verified").notNull().default(false),
   confidence: varchar("confidence", { length: 50 }).notNull().default("verified"),
+  routingStatus: varchar("routing_status", { length: 50 }).notNull().default("operational"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

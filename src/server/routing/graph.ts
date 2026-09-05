@@ -19,10 +19,25 @@ export async function getServerMetroGraph(): Promise<{ graph: MetroGraph; statio
     return { graph: cachedGraph, stations };
   }
 
-  // Authoritatively load stations from the database layer
-  const stations = await stationRepository.getAllStations();
-  cachedGraph = buildMetroGraph(stations);
+  // Authoritatively load stations and connections from PostgreSQL
+  const [stations, connections] = await Promise.all([
+    stationRepository.getAllStations(),
+    stationRepository.getAllConnections(),
+  ]);
+
+  // Build graph restricted to operational edges for public passenger journeys
+  cachedGraph = buildMetroGraph(stations, connections, { includeNonOperational: false });
   lastBuiltAt = now;
 
   return { graph: cachedGraph, stations };
+}
+
+export async function getDisplayMetroGraph(): Promise<{ graph: MetroGraph; stations: MetroStation[] }> {
+  const [stations, connections] = await Promise.all([
+    stationRepository.getAllStations(),
+    stationRepository.getAllConnections(),
+  ]);
+
+  const graph = buildMetroGraph(stations, connections, { includeNonOperational: true });
+  return { graph, stations };
 }

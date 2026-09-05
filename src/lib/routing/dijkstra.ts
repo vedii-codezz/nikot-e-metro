@@ -201,7 +201,7 @@ export function findShortestPath(
       currentRideLine = toLine;
       currentRideMinutes = 0;
     } else {
-      if (!currentRideLine) {
+      if (!currentRideLine || currentRideLine !== step.lineId) {
         currentRideLine = step.lineId;
         linesUsedSet.add(currentRideLine);
       }

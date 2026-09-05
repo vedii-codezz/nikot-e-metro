@@ -42,6 +42,7 @@ export default function Home() {
     selectedStation,
     recommendedStation,
     secondaryStations,
+    isReranking,
     setLocation,
     selectStation,
   } = useNearestMetro();
@@ -110,6 +111,13 @@ export default function Home() {
           {/* Nearest Results */}
           {recommendedStation ? (
             <div className="space-y-3 pt-2">
+              {isReranking && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-950/40 border border-blue-800/40 text-[11px] text-blue-300 font-mono animate-pulse">
+                  <div className="w-2.5 h-2.5 rounded-full border border-blue-400 border-t-transparent animate-spin" />
+                  <span>Calculating pedestrian walking access...</span>
+                </div>
+              )}
+
               <NearestStationCard
                 result={recommendedStation}
                 isSelected={selectedStation?.id === recommendedStation.station.id}
@@ -233,6 +241,13 @@ export default function Home() {
             searchedLocation={selectedLocation || origin || destination}
             activeRoute={route}
             onStationSelect={handleMapStationSelect}
+            walkingGeometry={
+              selectedStation
+                ? [recommendedStation, ...secondaryStations].find(
+                    (r) => r?.station.id === selectedStation.id
+                  )?.walkingGeometry
+                : null
+            }
           />
         </main>
 

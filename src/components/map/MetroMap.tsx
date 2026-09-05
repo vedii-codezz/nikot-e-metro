@@ -15,6 +15,10 @@ interface MetroMapProps {
   searchedLocation: GeocodingResult | null;
   activeRoute: JourneyRoute | null;
   onStationSelect?: (station: MetroStation) => void;
+  walkingGeometry?: {
+    type: "LineString";
+    coordinates: [number, number][];
+  } | null;
 }
 
 // Default Carto Dark Matter style (sleek, minimalist urban transit cartography)
@@ -49,6 +53,7 @@ export const MetroMap: React.FC<MetroMapProps> = ({
   searchedLocation,
   activeRoute,
   onStationSelect,
+  walkingGeometry,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<maplibregl.Map | null>(null);
@@ -62,35 +67,81 @@ export const MetroMap: React.FC<MetroMapProps> = ({
 
   // Helper to render static metro lines and station nodes
   const renderNetworkLayers = useCallback((map: maplibregl.Map) => {
-    // 1. Build line GeoJSON
-    const lineFeatures = METRO_LINES.map((line) => {
-      const lineStations = METRO_STATIONS.filter((s) => s.lineIds.includes(line.id));
-      const coordinates = lineStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]);
+    // 1. Build line GeoJSON separating operational vs planned sections (e.g. Green Line split)
+    const lineFeatures: any[] = [];
+    const plannedLineFeatures: any[] = [];
 
-      return {
-        type: "Feature" as const,
-        properties: {
-          lineId: line.id,
-          name: line.name,
-          color: line.color,
-        },
-        geometry: {
-          type: "LineString" as const,
-          coordinates,
-        },
-      };
+    METRO_LINES.forEach((line) => {
+      const lineStations = METRO_STATIONS.filter((s) => s.lineIds.includes(line.id));
+
+      if (line.id === "green") {
+        // West Section: Howrah Maidan to Esplanade Green (operational)
+        const westStationIds = ["howrah_maidan", "howrah_railway_station", "mahakaran", "esplanade_green"];
+        const westStations = westStationIds
+          .map((id) => lineStations.find((s) => s.id === id))
+          .filter(Boolean) as typeof lineStations;
+        if (westStations.length > 1) {
+          lineFeatures.push({
+            type: "Feature" as const,
+            properties: { lineId: line.id, name: `${line.name} (West)`, color: line.color, status: "operational" },
+            geometry: {
+              type: "LineString" as const,
+              coordinates: westStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+            },
+          });
+        }
+
+        // East Section: Sealdah to Salt Lake Sector V (operational)
+        const eastStationIds = [
+          "sealdah", "phoolbagan", "salt_lake_stadium", "bengal_chemical",
+          "city_centre", "central_park", "karunamoyee", "salt_lake_sector_v"
+        ];
+        const eastStations = eastStationIds
+          .map((id) => lineStations.find((s) => s.id === id))
+          .filter(Boolean) as typeof lineStations;
+        if (eastStations.length > 1) {
+          lineFeatures.push({
+            type: "Feature" as const,
+            properties: { lineId: line.id, name: `${line.name} (East)`, color: line.color, status: "operational" },
+            geometry: {
+              type: "LineString" as const,
+              coordinates: eastStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+            },
+          });
+        }
+
+        // Bowbazar unlinked section (planned / non-operational link)
+        const esplanadeGreen = lineStations.find((s) => s.id === "esplanade_green");
+        const sealdah = lineStations.find((s) => s.id === "sealdah");
+        if (esplanadeGreen && sealdah) {
+          plannedLineFeatures.push({
+            type: "Feature" as const,
+            properties: { lineId: line.id, name: `${line.name} (Under Construction)`, color: line.color, status: "planned" },
+            geometry: {
+              type: "LineString" as const,
+              coordinates: [
+                [esplanadeGreen.coordinates.longitude, esplanadeGreen.coordinates.latitude],
+                [sealdah.coordinates.longitude, sealdah.coordinates.latitude],
+              ],
+            },
+          });
+        }
+      } else {
+        // Standard operational line
+        const coordinates = lineStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]);
+        lineFeatures.push({
+          type: "Feature" as const,
+          properties: { lineId: line.id, name: line.name, color: line.color, status: "operational" },
+          geometry: { type: "LineString" as const, coordinates },
+        });
+      }
     });
 
-    const linesGeoJSON = {
-      type: "FeatureCollection" as const,
-      features: lineFeatures,
-    };
+    const linesGeoJSON = { type: "FeatureCollection" as const, features: lineFeatures };
+    const plannedLinesGeoJSON = { type: "FeatureCollection" as const, features: plannedLineFeatures };
 
     if (!map.getSource("metro-lines")) {
-      map.addSource("metro-lines", {
-        type: "geojson",
-        data: linesGeoJSON,
-      });
+      map.addSource("metro-lines", { type: "geojson", data: linesGeoJSON });
 
       // Line background glow
       map.addLayer({
@@ -113,6 +164,23 @@ export const MetroMap: React.FC<MetroMapProps> = ({
           "line-color": ["get", "color"],
           "line-width": 4.5,
           "line-opacity": 0.9,
+        },
+      });
+    }
+
+    if (!map.getSource("metro-lines-planned")) {
+      map.addSource("metro-lines-planned", { type: "geojson", data: plannedLinesGeoJSON });
+
+      // Planned line track (dashed)
+      map.addLayer({
+        id: "metro-lines-planned-layer",
+        type: "line",
+        source: "metro-lines-planned",
+        paint: {
+          "line-color": ["get", "color"],
+          "line-width": 3,
+          "line-dasharray": [3, 3],
+          "line-opacity": 0.45,
         },
       });
     }
@@ -315,8 +383,17 @@ export const MetroMap: React.FC<MetroMapProps> = ({
 
       locationMarkerRef.current = marker;
 
-      // Update straight dashed proximity line if a station is selected
+      // Update proximity line if a station is selected
       if (selectedStation) {
+        // Use real street pedestrian coordinates if provided; otherwise fallback to straight line
+        const coords: [number, number][] =
+          walkingGeometry && walkingGeometry.coordinates.length > 1
+            ? walkingGeometry.coordinates
+            : [
+                [searchedLocation.coordinates.longitude, searchedLocation.coordinates.latitude],
+                [selectedStation.coordinates.longitude, selectedStation.coordinates.latitude],
+              ];
+
         const proximityGeoJSON = {
           type: "FeatureCollection" as const,
           features: [
@@ -325,10 +402,7 @@ export const MetroMap: React.FC<MetroMapProps> = ({
               properties: {},
               geometry: {
                 type: "LineString" as const,
-                coordinates: [
-                  [searchedLocation.coordinates.longitude, searchedLocation.coordinates.latitude],
-                  [selectedStation.coordinates.longitude, selectedStation.coordinates.latitude],
-                ],
+                coordinates: coords,
               },
             },
           ],
@@ -339,8 +413,9 @@ export const MetroMap: React.FC<MetroMapProps> = ({
 
         // Fit map bounds to show both searched location and nearest station
         const bounds = new maplibregl.LngLatBounds();
-        bounds.extend([searchedLocation.coordinates.longitude, searchedLocation.coordinates.latitude]);
-        bounds.extend([selectedStation.coordinates.longitude, selectedStation.coordinates.latitude]);
+        for (const [lng, lat] of coords) {
+          bounds.extend([lng, lat]);
+        }
         map.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 1000 });
       } else {
         map.flyTo({
@@ -354,7 +429,7 @@ export const MetroMap: React.FC<MetroMapProps> = ({
       const source = map.getSource("proximity-line") as maplibregl.GeoJSONSource;
       source?.setData({ type: "FeatureCollection", features: [] });
     }
-  }, [searchedLocation, selectedStation, mapLoaded]);
+  }, [searchedLocation, selectedStation, walkingGeometry, mapLoaded]);
 
   // Synchronize Active Calculated Route
   useEffect(() => {
@@ -365,19 +440,31 @@ export const MetroMap: React.FC<MetroMapProps> = ({
     if (!source) return;
 
     if (activeRoute) {
-      // Collect station coordinates in journey sequence
+      // Collect coordinates in journey sequence (supporting real street walking geometry if available)
       const routeCoords: [number, number][] = [];
 
       for (const seg of activeRoute.segments) {
         if (seg.type === "first_mile_walk") {
-          routeCoords.push([seg.originCoordinates.longitude, seg.originCoordinates.latitude]);
-          routeCoords.push([seg.targetStation.coordinates.longitude, seg.targetStation.coordinates.latitude]);
+          if (seg.walkingGeometry && seg.walkingGeometry.coordinates.length > 0) {
+            for (const pt of seg.walkingGeometry.coordinates) {
+              routeCoords.push(pt);
+            }
+          } else {
+            routeCoords.push([seg.originCoordinates.longitude, seg.originCoordinates.latitude]);
+            routeCoords.push([seg.targetStation.coordinates.longitude, seg.targetStation.coordinates.latitude]);
+          }
         } else if (seg.type === "metro_ride") {
           for (const st of seg.stations) {
             routeCoords.push([st.coordinates.longitude, st.coordinates.latitude]);
           }
         } else if (seg.type === "last_mile_walk") {
-          routeCoords.push([seg.destinationCoordinates.longitude, seg.destinationCoordinates.latitude]);
+          if (seg.walkingGeometry && seg.walkingGeometry.coordinates.length > 0) {
+            for (const pt of seg.walkingGeometry.coordinates) {
+              routeCoords.push(pt);
+            }
+          } else {
+            routeCoords.push([seg.destinationCoordinates.longitude, seg.destinationCoordinates.latitude]);
+          }
         }
       }
 

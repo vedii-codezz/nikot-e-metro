@@ -91,11 +91,17 @@ export const NearestStationCard: React.FC<NearestStationCardProps> = ({
       <div className="mt-3 pt-3 border-t border-transit-border flex items-center justify-between text-xs text-transit-muted">
         <div className="flex items-center gap-1.5 text-transit-text font-medium font-mono">
           <Footprints className="w-3.5 h-3.5 text-metro-blue" />
-          <span>Approx. {formatDistance(distanceKm)} away</span>
+          <span>
+            {result.walkingRouteQuality === "routed" && result.walkingDistanceMeters
+              ? `${formatDistance(result.walkingDistanceMeters / 1000)} walk`
+              : `Approx. ${formatDistance(distanceKm)} away`}
+          </span>
         </div>
 
         <span className="text-[11px] text-transit-muted">
-          ~{estimatedWalkMinutes} min walk est.
+          {result.walkingRouteQuality === "routed" && result.walkingDurationSeconds
+            ? `${Math.max(1, Math.round(result.walkingDurationSeconds / 60))} min`
+            : `~${estimatedWalkMinutes} min walk est.`}
         </span>
       </div>
 

@@ -70,10 +70,16 @@ export const NearbyStationsList: React.FC<NearbyStationsListProps> = ({
               <div className="text-right shrink-0">
                 <div className="flex items-center justify-end gap-1 text-xs font-mono font-medium text-transit-text">
                   <Footprints className="w-3 h-3 text-transit-muted" />
-                  <span>{formatDistance(distanceKm)}</span>
+                  <span>
+                    {res.walkingRouteQuality === "routed" && res.walkingDistanceMeters
+                      ? `${formatDistance(res.walkingDistanceMeters / 1000)} walk`
+                      : formatDistance(distanceKm)}
+                  </span>
                 </div>
                 <div className="text-[10px] text-transit-muted">
-                  ~{estimatedWalkMinutes} min walk est.
+                  {res.walkingRouteQuality === "routed" && res.walkingDurationSeconds
+                    ? `${Math.max(1, Math.round(res.walkingDurationSeconds / 60))} min`
+                    : `~${estimatedWalkMinutes} min walk est.`}
                 </div>
               </div>
             </div>

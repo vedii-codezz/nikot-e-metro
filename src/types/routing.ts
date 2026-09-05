@@ -1,4 +1,4 @@
-import { MetroStation, LineId, DataConfidence } from "./station";
+import { MetroStation, LineId, DataConfidence, RoutingStatus } from "./station";
 import { Coordinates } from "./geo";
 
 export type RoutePreference = "fastest";
@@ -15,6 +15,7 @@ export interface GraphEdge {
   travelMinutes: number;
   isInterchange: boolean;
   confidence: DataConfidence;
+  routingStatus: RoutingStatus;
 }
 
 export type RouteSegmentType = "first_mile_walk" | "metro_ride" | "interchange" | "last_mile_walk";
@@ -26,6 +27,12 @@ export interface FirstMileWalkSegment {
   targetStation: MetroStation;
   distanceKm: number;
   estimatedWalkMinutes: number;
+  walkingRouteQuality?: "routed" | "estimated";
+  walkingGeometry?: {
+    type: "LineString";
+    coordinates: [number, number][];
+  };
+  walkingSource?: "valhalla" | "osrm-foot" | "haversine";
 }
 
 export interface MetroRideSegment {
@@ -55,6 +62,12 @@ export interface LastMileWalkSegment {
   destinationCoordinates: Coordinates;
   distanceKm: number;
   estimatedWalkMinutes: number;
+  walkingRouteQuality?: "routed" | "estimated";
+  walkingGeometry?: {
+    type: "LineString";
+    coordinates: [number, number][];
+  };
+  walkingSource?: "valhalla" | "osrm-foot" | "haversine";
 }
 
 export type RouteSegment =

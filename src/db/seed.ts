@@ -120,6 +120,16 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
       const connIdFwd = `conn_${line.id}_${u.id}_${v.id}`;
       const connIdRev = `conn_${line.id}_${v.id}_${u.id}`;
 
+      // In real operational Kolkata Metro topology, Green Line operates as two distinct sections:
+      // Howrah Maidan <-> Esplanade, and Sealdah <-> Salt Lake Sector V.
+      // The central Bowbazar link (Esplanade <-> Sealdah) is under construction/planned.
+      const isBowbazarUnlinked =
+        line.id === "green" &&
+        ((u.id === "esplanade_green" && v.id === "sealdah") ||
+         (u.id === "sealdah" && v.id === "esplanade_green"));
+
+      const connRoutingStatus = isBowbazarUnlinked ? "planned" : "operational";
+
       await db
         .insert(schema.stationConnections)
         .values({
@@ -132,8 +142,16 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
           verified: u.confidence === "verified" && v.confidence === "verified",
           confidence:
             u.confidence === "verified" && v.confidence === "verified" ? "verified" : "development",
+          routingStatus: connRoutingStatus,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: schema.stationConnections.id,
+          set: {
+            routingStatus: connRoutingStatus,
+            distanceMeters: distMeters,
+            estimatedTravelSeconds: seconds,
+          },
+        });
       connectionsCount++;
 
       await db
@@ -148,8 +166,16 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
           verified: u.confidence === "verified" && v.confidence === "verified",
           confidence:
             u.confidence === "verified" && v.confidence === "verified" ? "verified" : "development",
+          routingStatus: connRoutingStatus,
         })
-        .onConflictDoNothing();
+        .onConflictDoUpdate({
+          target: schema.stationConnections.id,
+          set: {
+            routingStatus: connRoutingStatus,
+            distanceMeters: distMeters,
+            estimatedTravelSeconds: seconds,
+          },
+        });
       connectionsCount++;
     }
   }
@@ -160,6 +186,8 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
     if (station.isInterchange && station.interchangeConnections) {
       for (const conn of station.interchangeConnections) {
         const interchangeId = `int_${station.id}_${conn.targetStationId}`;
+        const interchangeRoutingStatus = conn.routingStatus || "operational";
+
         await db
           .insert(schema.interchanges)
           .values({
@@ -169,9 +197,16 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
             estimatedTransferSeconds: (conn.estimatedTransferMinutes ?? 4) * 60,
             verified: conn.confidence === "verified",
             confidence: conn.confidence,
+            routingStatus: interchangeRoutingStatus,
             notes: "Concourse transfer walkway",
           })
-          .onConflictDoNothing();
+          .onConflictDoUpdate({
+            target: schema.interchanges.id,
+            set: {
+              routingStatus: interchangeRoutingStatus,
+              estimatedTransferSeconds: (conn.estimatedTransferMinutes ?? 4) * 60,
+            },
+          });
         interchangesCount++;
       }
     }

@@ -1,6 +1,15 @@
 import { drizzle } from "drizzle-orm/neon-serverless";
 import { Pool } from "@neondatabase/serverless";
+import { loadEnvConfig } from "@next/env";
 import * as schema from "./schema";
+
+if (!process.env.DATABASE_URL) {
+  try {
+    loadEnvConfig(process.cwd());
+  } catch {
+    // Ignore error in environments without filesystem access
+  }
+}
 
 let poolInstance: Pool | null = null;
 let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;

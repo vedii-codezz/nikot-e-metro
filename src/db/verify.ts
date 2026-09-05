@@ -82,7 +82,9 @@ export async function verifyDatabaseIntegrity(): Promise<boolean> {
       console.error(`❌ Found ${invalidConnections.length} connections referencing non-existent station IDs!`);
       return false;
     }
-    console.log(`✅ Found ${connections.length} bidirectional track connections. All endpoint stations valid.`);
+    const operationalConns = connections.filter((c) => c.routingStatus === "operational");
+    const plannedConns = connections.filter((c) => c.routingStatus === "planned");
+    console.log(`✅ Found ${connections.length} bidirectional track connections (Operational: ${operationalConns.length}, Planned/Non-routable: ${plannedConns.length}). All endpoint stations valid.`);
 
     // 6. Query Interchanges
     console.log("\n6. Verifying interchanges table...");
@@ -94,7 +96,8 @@ export async function verifyDatabaseIntegrity(): Promise<boolean> {
       console.error(`❌ Found ${invalidInterchanges.length} interchanges referencing non-existent station IDs!`);
       return false;
     }
-    console.log(`✅ Found ${interchanges.length} explicit transfer interchange connections.`);
+    const operationalInterchanges = interchanges.filter((i) => i.routingStatus === "operational");
+    console.log(`✅ Found ${interchanges.length} transfer interchange connections (${operationalInterchanges.length} operational).`);
 
     // 7. Query Landmarks
     console.log("\n7. Verifying landmarks table...");

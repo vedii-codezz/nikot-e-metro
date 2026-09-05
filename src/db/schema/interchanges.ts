@@ -12,6 +12,7 @@ export const interchanges = pgTable("interchanges", {
   estimatedTransferSeconds: integer("estimated_transfer_seconds"),
   verified: boolean("verified").notNull().default(false),
   confidence: varchar("confidence", { length: 50 }).notNull().default("verified"),
+  routingStatus: varchar("routing_status", { length: 50 }).notNull().default("operational"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

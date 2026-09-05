@@ -1,0 +1,2 @@
+ALTER TABLE "station_connections" ADD COLUMN "routing_status" varchar(50) DEFAULT 'operational' NOT NULL;--> statement-breakpoint
+ALTER TABLE "interchanges" ADD COLUMN "routing_status" varchar(50) DEFAULT 'operational' NOT NULL;

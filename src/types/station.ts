@@ -2,6 +2,8 @@ import { Coordinates } from "./geo";
 
 export type DataConfidence = "verified" | "development" | "planned";
 
+export type RoutingStatus = "operational" | "unavailable" | "planned" | "unknown";
+
 export type LineId = "blue" | "green" | "purple" | "orange" | "yellow";
 
 export interface MetroLine {
@@ -16,11 +18,24 @@ export interface MetroLine {
   confidence: DataConfidence;
 }
 
+export interface StationConnection {
+  id: string;
+  fromStationId: string;
+  toStationId: string;
+  lineId: LineId;
+  distanceMeters: number;
+  estimatedTravelSeconds?: number;
+  verified: boolean;
+  confidence: DataConfidence;
+  routingStatus: RoutingStatus;
+}
+
 export interface InterchangeConnection {
   targetStationId: string;
   targetLineId: LineId;
   estimatedTransferMinutes?: number;
   confidence: DataConfidence;
+  routingStatus?: RoutingStatus;
 }
 
 export interface MetroStation {
@@ -45,6 +60,15 @@ export interface MetroStation {
 export interface NearbyStationResult {
   station: MetroStation;
   distanceKm: number;          // Haversine straight-line distance
-  estimatedWalkMinutes: number; // Approximate walking time at standard pedestrian pace
+  estimatedWalkMinutes: number; // Approximate walking time
   confidence: DataConfidence;
+  straightLineDistanceMeters?: number;
+  walkingDistanceMeters?: number;
+  walkingDurationSeconds?: number;
+  walkingRouteQuality?: "routed" | "estimated";
+  walkingGeometry?: {
+    type: "LineString";
+    coordinates: [number, number][];
+  };
+  walkingSource?: "valhalla" | "osrm-foot" | "haversine";
 }
