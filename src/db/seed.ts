@@ -304,7 +304,13 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
         dataConfidence: stand.dataConfidence,
         sourceName: stand.sourceName,
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: schema.informalTransitStands.id,
+        set: {
+          dataConfidence: stand.dataConfidence,
+          sourceName: stand.sourceName,
+        },
+      });
   }
 
   const summary: SeedSummary = {

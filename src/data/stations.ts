@@ -4,9 +4,10 @@ import { MetroStation } from "../types/station";
  * Kolkata Metro Stations Dataset
  * Milestone 1 incorporates core operational network nodes across:
  * - Line 1 (Blue Line: Dakshineswar to Kavi Subhash)
- * - Line 2 (Green Line: Howrah Maidan to Esplanade, and Sealdah to Salt Lake Sector V)
+ * - Line 2 (Green Line: Continuous Howrah Maidan to Salt Lake Sector V)
  * - Line 3 (Purple Line: Joka to Majerhat)
- * - Line 6 (Orange Line: Kavi Subhash to Hemanta Mukhopadhyay / Ruby)
+ * - Line 4 (Yellow Line: Noapara to Jai Hind / Airport)
+ * - Line 6 (Orange Line: Kavi Subhash to Beleghata)
  *
  * Each entry has an explicit confidence level and verified interchange mapping.
  */
@@ -512,7 +513,7 @@ export const METRO_STATIONS: MetroStation[] = [
   },
 
   // ==========================================
-  // ORANGE LINE (Line 6: Kavi Subhash to Ruby/Hemanta Mukhopadhyay)
+  // ORANGE LINE (Line 6: Kavi Subhash to Beleghata)
   // ==========================================
   {
     id: "satyajit_ray",
@@ -649,7 +650,7 @@ export const METRO_STATIONS: MetroStation[] = [
   // UNDER CONSTRUCTION & PLANNED STATIONS (CARTOGRAPHY ONLY)
   // These stations are explicitly excluded from passenger routing.
   // ==========================================
-  // Purple Line Central Extension (Majerhat -> Esplanade)
+  // --- Purple Line Central Extension (Majerhat -> Esplanade) ---
   {
     id: "mominpur",
     name: "Mominpur",
@@ -683,7 +684,30 @@ export const METRO_STATIONS: MetroStation[] = [
     confidence: "development",
     nearbyLandmarks: ["Victoria Memorial West Gate", "Race Course", "Hastings"],
   },
-  // Orange Line Northern Extension (Beleghata -> Jai Hind Airport)
+  {
+    id: "park_street_purple",
+    name: "Park Street (Purple Line)",
+    bengaliName: "পার্ক স্ট্রিট (পার্পল লাইন)",
+    coordinates: { latitude: 22.5532, longitude: 88.3508 },
+    lineIds: ["purple"],
+    isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["Park Street Concourse", "Indian Museum"],
+  },
+  {
+    id: "esplanade_purple",
+    name: "Esplanade (Purple Line)",
+    bengaliName: "এসপ্ল্যানেড (পার্পল লাইন)",
+    coordinates: { latitude: 22.5636, longitude: 88.3512 },
+    lineIds: ["purple"],
+    isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["Esplanade Metro Interchange Hub"],
+  },
+
+  // --- Orange Line Northern Extension (Beleghata -> Jai Hind Airport) ---
   {
     id: "gour_kishore_ghosh",
     name: "Gour Kishore Ghosh (Chingrighata)",
@@ -707,6 +731,61 @@ export const METRO_STATIONS: MetroStation[] = [
     nearbyLandmarks: ["Nalban Boating Complex", "Nicco Park"],
   },
   {
+    id: "it_centre",
+    name: "IT Centre (Sector V Orange)",
+    bengaliName: "আইটি সেন্টার",
+    coordinates: { latitude: 22.5785, longitude: 88.4312 },
+    lineIds: ["orange"],
+    isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["Salt Lake Sector V Interchange", "Wipro More"],
+  },
+  {
+    id: "nazrul_tirtha",
+    name: "Nazrul Tirtha",
+    bengaliName: "নজরুল তীর্থ",
+    coordinates: { latitude: 22.5852, longitude: 88.4578 },
+    lineIds: ["orange"],
+    isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["Nazrul Tirtha Cultural Centre", "Action Area 1"],
+  },
+  {
+    id: "biswa_bangla_convention_centre",
+    name: "Biswa Bangla Convention Centre",
+    bengaliName: "বিশ্ব বাংলা কনভেনশন সেন্টার",
+    coordinates: { latitude: 22.5938, longitude: 88.4682 },
+    lineIds: ["orange"],
+    isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["Biswa Bangla Convention Centre", "HIDCO Bhawan"],
+  },
+  {
+    id: "eco_park",
+    name: "Eco Park",
+    bengaliName: "ইকো পার্ক",
+    coordinates: { latitude: 22.6075, longitude: 88.4695 },
+    lineIds: ["orange"],
+    isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["Eco Tourism Park Gate 2", "Banglar Gram"],
+  },
+  {
+    id: "city_centre_2",
+    name: "City Centre 2",
+    bengaliName: "সিটি সেন্টার ২",
+    coordinates: { latitude: 22.6212, longitude: 88.4518 },
+    lineIds: ["orange"],
+    isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["City Centre 2 Rajarhat", "Chinar Park North"],
+  },
+  {
     id: "chinar_park",
     name: "Chinar Park",
     bengaliName: "চিনার পার্ক",
@@ -717,7 +796,18 @@ export const METRO_STATIONS: MetroStation[] = [
     confidence: "development",
     nearbyLandmarks: ["Chinar Park Crossing", "Rajarhat Main Road"],
   },
-  // Yellow Line Extension to Barasat (Planned/Approved)
+  {
+    id: "vip_road",
+    name: "VIP Road (Haldiram)",
+    bengaliName: "ভিআইপি রোড",
+    coordinates: { latitude: 22.6345, longitude: 88.4385 },
+    lineIds: ["orange"],
+    isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["Haldiram VIP Road Crossing", "Teghoria"],
+  },
+  // --- Yellow Line Extension to Barasat (Planned/Approved Corridor) ---
   {
     id: "birati",
     name: "Birati",
@@ -725,9 +815,53 @@ export const METRO_STATIONS: MetroStation[] = [
     coordinates: { latitude: 22.6681, longitude: 88.4358 },
     lineIds: ["yellow"],
     isInterchange: false,
+    status: "under_construction",
+    confidence: "development",
+    nearbyLandmarks: ["Birati Railway Station", "MB Road"],
+  },
+  {
+    id: "michael_nagar",
+    name: "Michael Nagar",
+    bengaliName: "মাইকেল নগর",
+    coordinates: { latitude: 22.6792, longitude: 88.4415 },
+    lineIds: ["yellow"],
+    isInterchange: false,
     status: "planned",
     confidence: "planned",
-    nearbyLandmarks: ["Birati Railway Station", "MB Road"],
+    nearbyLandmarks: ["Michael Nagar Industrial Estate", "Jessore Road"],
+  },
+  {
+    id: "new_barrackpore",
+    name: "New Barrackpore",
+    bengaliName: "নিউ ব্যারাকপুর",
+    coordinates: { latitude: 22.6958, longitude: 88.4486 },
+    lineIds: ["yellow"],
+    isInterchange: false,
+    status: "planned",
+    confidence: "planned",
+    nearbyLandmarks: ["New Barrackpore Station", "Madhyamgram South"],
+  },
+  {
+    id: "madhyamgram",
+    name: "Madhyamgram",
+    bengaliName: "মধ্যমগ্রাম",
+    coordinates: { latitude: 22.7042, longitude: 88.4552 },
+    lineIds: ["yellow"],
+    isInterchange: false,
+    status: "planned",
+    confidence: "planned",
+    nearbyLandmarks: ["Madhyamgram Chowmatha", "Star Mall"],
+  },
+  {
+    id: "hridaypur",
+    name: "Hridaypur",
+    bengaliName: "হৃদয়পুর",
+    coordinates: { latitude: 22.7135, longitude: 88.4688 },
+    lineIds: ["yellow"],
+    isInterchange: false,
+    status: "planned",
+    confidence: "planned",
+    nearbyLandmarks: ["Hridaypur Railway Station"],
   },
   {
     id: "barasat",

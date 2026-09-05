@@ -90,7 +90,7 @@ export const MetroMap: React.FC<MetroMapProps> = ({
 
     // --- GREEN LINE: Continuous Operational Corridor (Howrah Maidan to Sector V) ---
     const greenOrder = [
-      "howrah_maidan", "howrah_railway_station", "mahakaran", "esplanade_green",
+      "howrah_maidan", "howrah", "mahadan_underwater", "esplanade_green",
       "sealdah", "phoolbagan", "salt_lake_stadium", "bengal_chemical",
       "city_centre", "central_park", "karunamoyee", "salt_lake_sector_v"
     ];
@@ -121,7 +121,9 @@ export const MetroMap: React.FC<MetroMapProps> = ({
     }
 
     // --- YELLOW LINE: Construction Extension (Jai Hind to Barasat) ---
-    const yellowConstOrder = ["jai_hind", "birati", "barasat"];
+    const yellowConstOrder = [
+      "jai_hind", "birati", "michael_nagar", "new_barrackpore", "madhyamgram", "hridaypur", "barasat"
+    ];
     const yellowConstStations = getOrderedStations(yellowConstOrder);
     if (yellowConstStations.length > 1) {
       plannedLineFeatures.push({
@@ -149,7 +151,9 @@ export const MetroMap: React.FC<MetroMapProps> = ({
     }
 
     // --- PURPLE LINE: Construction Section (Majerhat to Esplanade) ---
-    const purpleConstOrder = ["majerhat", "mominpur", "kidderpore", "victoria_purple", "esplanade"];
+    const purpleConstOrder = [
+      "majerhat", "mominpur", "kidderpore", "victoria_purple", "park_street_purple", "esplanade_purple"
+    ];
     const purpleConstStations = getOrderedStations(purpleConstOrder);
     if (purpleConstStations.length > 1) {
       plannedLineFeatures.push({
@@ -180,7 +184,10 @@ export const MetroMap: React.FC<MetroMapProps> = ({
     }
 
     // --- ORANGE LINE: Construction Extension (Beleghata to Airport) ---
-    const orangeConstOrder = ["beleghata", "gour_kishore_ghosh", "nalban", "chinar_park", "jai_hind"];
+    const orangeConstOrder = [
+      "beleghata", "gour_kishore_ghosh", "nalban", "it_centre", "nazrul_tirtha",
+      "biswa_bangla_convention_centre", "eco_park", "city_centre_2", "chinar_park", "vip_road", "jai_hind"
+    ];
     const orangeConstStations = getOrderedStations(orangeConstOrder);
     if (orangeConstStations.length > 1) {
       plannedLineFeatures.push({

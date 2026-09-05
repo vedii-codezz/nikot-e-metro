@@ -13,7 +13,7 @@ const config: Config = {
           blue: "#0072CE",      // Line 1 (North-South)
           green: "#00A651",     // Line 2 (East-West)
           purple: "#7B2CBF",    // Line 3 (Joka-Majerhat)
-          orange: "#FF7900",    // Line 6 (Kavi Subhash-Hemanta Mukhopadhyay)
+          orange: "#FF7900",    // Line 6 (Kavi Subhash-Beleghata)
           yellow: "#FFD100",    // Line 4 (Noapara-Airport)
         },
         transit: {

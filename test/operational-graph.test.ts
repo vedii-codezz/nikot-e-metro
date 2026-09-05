@@ -93,63 +93,41 @@ test("Operational Graph: Interchanges respect routingStatus", () => {
   assert.equal(transferEdge, undefined, "Unavailable interchange must not create operational graph edge");
 });
 
-test("Operational Graph: Green Line split prevents through-routing across Bowbazar gap", () => {
-  // Model Green Line West + East with Bowbazar unlinked
-  const stations: MetroStation[] = [
-    { id: "howrah", name: "Howrah", lineIds: ["green"], coordinates: { latitude: 22.58, longitude: 88.34 }, isInterchange: false, confidence: "development" },
-    { id: "esplanade_green", name: "Esplanade Green", lineIds: ["green"], coordinates: { latitude: 22.56, longitude: 88.35 }, isInterchange: false, confidence: "development" },
-    { id: "sealdah", name: "Sealdah", lineIds: ["green"], coordinates: { latitude: 22.56, longitude: 88.37 }, isInterchange: false, confidence: "development" },
-    { id: "sector_v", name: "Sector V", lineIds: ["green"], coordinates: { latitude: 22.57, longitude: 88.43 }, isInterchange: false, confidence: "development" },
-  ];
+test("Operational Graph: Green Line remains continuous through Esplanade–Sealdah", async () => {
+  const { getServerMetroGraph } = await import("../src/server/routing/graph");
+  const { graph, stations } = await getServerMetroGraph();
 
-  const connections: StationConnection[] = [
-    {
-      id: "conn_howrah_esp",
-      fromStationId: "howrah",
-      toStationId: "esplanade_green",
-      lineId: "green",
-      distanceMeters: 2500,
-      estimatedTravelSeconds: 240,
-      verified: true,
-      confidence: "verified",
-      routingStatus: "operational",
-    },
-    {
-      id: "conn_bowbazar_gap",
-      fromStationId: "esplanade_green",
-      toStationId: "sealdah",
-      lineId: "green",
-      distanceMeters: 2000,
-      estimatedTravelSeconds: 240,
-      verified: false,
-      confidence: "development",
-      routingStatus: "planned", // Bowbazar is planned/unlinked
-    },
-    {
-      id: "conn_sealdah_secv",
-      fromStationId: "sealdah",
-      toStationId: "sector_v",
-      lineId: "green",
-      distanceMeters: 7000,
-      estimatedTravelSeconds: 840,
-      verified: true,
-      confidence: "verified",
-      routingStatus: "operational",
-    },
-  ];
+  // 1. Esplanade Green -> Sealdah edge exists in operational graph
+  const esplanadeEdges = graph.adjacencyList.get("esplanade_green") || [];
+  const toSealdah = esplanadeEdges.find((e) => e.toStationId === "sealdah");
+  assert.ok(toSealdah, "Esplanade Green -> Sealdah operational edge must exist");
+  assert.equal(toSealdah.routingStatus, "operational");
 
-  const graph = buildMetroGraph(stations, connections);
+  // 2. Sealdah -> Esplanade Green reverse edge exists in operational graph
+  const sealdahEdges = graph.adjacencyList.get("sealdah") || [];
+  const toEsplanade = sealdahEdges.find((e) => e.toStationId === "esplanade_green");
+  assert.ok(toEsplanade, "Sealdah -> Esplanade Green operational edge must exist");
+  assert.equal(toEsplanade.routingStatus, "operational");
 
-  // Howrah to Esplanade is operational
-  const westPath = findShortestPath(graph, "howrah", "esplanade_green");
-  assert.ok(westPath !== null);
+  // 3. Both survive operational-graph filtering
+  assert.ok(toSealdah.travelMinutes > 0);
+  assert.ok(toEsplanade.travelMinutes > 0);
 
-  // Sealdah to Sector V is operational
-  const eastPath = findShortestPath(graph, "sealdah", "sector_v");
-  assert.ok(eastPath !== null);
+  // 4. Dijkstra can traverse through Esplanade-Sealdah seamlessly
+  const path = findShortestPath(graph, "esplanade_green", "sealdah");
+  assert.ok(path !== null, "Dijkstra must find path between Esplanade Green and Sealdah");
+  assert.equal(path.interchangeCount, 0);
+  assert.deepEqual(path.linesUsed, ["green"]);
+  assert.deepEqual(path.stationIds, ["esplanade_green", "sealdah"]);
 
-  // Through-path across Bowbazar gap must be null
-  const throughPath = findShortestPath(graph, "howrah", "sector_v");
-  assert.equal(throughPath, null, "Through-running from Howrah to Sector V must be blocked by planned Bowbazar connection");
+  // 5. Complete corridor: Howrah Maidan -> Salt Lake Sector V is a continuous through-path
+  const fullCorridorPath = findShortestPath(graph, "howrah_maidan", "salt_lake_sector_v");
+  assert.ok(fullCorridorPath !== null, "Continuous path must exist from Howrah Maidan to Sector V");
+  assert.equal(fullCorridorPath.interchangeCount, 0, "Full Green line corridor must have 0 line interchanges");
+  assert.deepEqual(fullCorridorPath.linesUsed, ["green"]);
+  assert.equal(fullCorridorPath.totalStops, 11);
+  assert.ok(fullCorridorPath.stationIds.includes("esplanade_green"));
+  assert.ok(fullCorridorPath.stationIds.includes("sealdah"));
 });
+
 

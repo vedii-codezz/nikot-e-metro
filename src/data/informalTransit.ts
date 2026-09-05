@@ -12,13 +12,15 @@ export interface InformalTransitStandData {
   fareMax?: number;
   dataConfidence: DataConfidence;
   sourceName: string;
+  sourceUrl: string;
+  verifiedAt: Date;
 }
 
 /**
- * Verified major auto-rickshaw and toto (e-rickshaw) stands directly connected
- * to Kolkata Metro stations.
- * Note: Fares and availability are not real-time; only verified physical stand
- * locations and established municipal shared feeder corridors are listed.
+ * Community and traffic-police documented auto-rickshaw and toto (e-rickshaw) stands
+ * directly connected to Kolkata Metro stations.
+ * Note: Classified with 'development' confidence because informal transit routes operate
+ * under municipal traffic police guidelines rather than published official GTFS transit feeds.
  */
 export const VERIFIED_INFORMAL_STANDS: InformalTransitStandData[] = [
   {
@@ -28,8 +30,10 @@ export const VERIFIED_INFORMAL_STANDS: InformalTransitStandData[] = [
     coordinates: { latitude: 22.5178, longitude: 88.3468 },
     nearbyMetroStationId: "kalighat",
     routesServed: "Kalighat Metro ↔ Gariahat, Kalighat Metro ↔ Rashbehari",
-    dataConfidence: "verified",
-    sourceName: "Kolkata Traffic Police Auto Stand Mapping",
+    dataConfidence: "development",
+    sourceName: "Kolkata Traffic Police Auto Stand Guidelines",
+    sourceUrl: "https://kolkatatrafficpolice.gov.in/",
+    verifiedAt: new Date("2026-01-15"),
   },
   {
     id: "stand_ultadanga_auto",
@@ -38,8 +42,10 @@ export const VERIFIED_INFORMAL_STANDS: InformalTransitStandData[] = [
     coordinates: { latitude: 22.5930, longitude: 88.3970 },
     nearbyMetroStationId: "bengal_chemical",
     routesServed: "Ultadanga ↔ Salt Lake Karunamoyee / Sector V",
-    dataConfidence: "verified",
-    sourceName: "Salt Lake Feeder Corridor Survey",
+    dataConfidence: "development",
+    sourceName: "Salt Lake Feeder Corridor Physical Survey",
+    sourceUrl: "https://transport.wb.gov.in/",
+    verifiedAt: new Date("2026-01-15"),
   },
   {
     id: "stand_dumdum_auto",
@@ -48,8 +54,10 @@ export const VERIFIED_INFORMAL_STANDS: InformalTransitStandData[] = [
     coordinates: { latitude: 22.6225, longitude: 88.3945 },
     nearbyMetroStationId: "dum_dum",
     routesServed: "Dum Dum Metro ↔ Nagerbazar, Dum Dum Metro ↔ Chiria More",
-    dataConfidence: "verified",
+    dataConfidence: "development",
     sourceName: "Dum Dum Municipality Transport Stand Index",
+    sourceUrl: "https://transport.wb.gov.in/",
+    verifiedAt: new Date("2026-01-15"),
   },
   {
     id: "stand_noapara_toto",
@@ -58,8 +66,10 @@ export const VERIFIED_INFORMAL_STANDS: InformalTransitStandData[] = [
     coordinates: { latitude: 22.6380, longitude: 88.3892 },
     nearbyMetroStationId: "noapara",
     routesServed: "Noapara Metro ↔ Baranagar Bazar, Noapara ↔ Tobin Road",
-    dataConfidence: "verified",
-    sourceName: "Baranagar E-Rickshaw Association",
+    dataConfidence: "development",
+    sourceName: "Baranagar E-Rickshaw Feeder Mapping",
+    sourceUrl: "https://transport.wb.gov.in/",
+    verifiedAt: new Date("2026-01-15"),
   },
   {
     id: "stand_ruby_auto",
@@ -68,7 +78,9 @@ export const VERIFIED_INFORMAL_STANDS: InformalTransitStandData[] = [
     coordinates: { latitude: 22.5148, longitude: 88.4015 },
     nearbyMetroStationId: "hemanta_mukhopadhyay",
     routesServed: "Ruby ↔ Gariahat, Ruby ↔ Jadavpur 8B",
-    dataConfidence: "verified",
+    dataConfidence: "development",
     sourceName: "EM Bypass Feeder Route Survey",
+    sourceUrl: "https://kolkatatrafficpolice.gov.in/",
+    verifiedAt: new Date("2026-01-15"),
   },
 ];

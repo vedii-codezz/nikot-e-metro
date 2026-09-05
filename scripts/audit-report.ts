@@ -35,6 +35,13 @@ async function reportNetworkStatus() {
     const constructionCount = lineStations.filter((s) => s.status === "under_construction").length;
     const plannedCount = lineStations.filter((s) => s.status === "planned" || s.status === "approved").length;
 
+    if (line.id === "pink") {
+      console.log(
+        `| ${line.name.padEnd(16)} |                    - |            - |       - | Planned Alignment (Metadata only)     |`
+      );
+      continue;
+    }
+
     console.log(
       `| ${line.name.padEnd(16)} | ${operationalCount.toString().padStart(20)} | ${constructionCount.toString().padStart(12)} | ${plannedCount.toString().padStart(7)} | ${line.terminus.join(" ↔ ").padEnd(36)} |`
     );
