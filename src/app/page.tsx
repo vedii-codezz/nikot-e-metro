@@ -6,6 +6,7 @@ import { Header, NavigationMode } from "../components/layout/Header";
 import { SearchBar } from "../components/search/SearchBar";
 import { NearestStationCard } from "../components/station/NearestStationCard";
 import { NearbyStationsList } from "../components/station/NearbyStationsList";
+import { StationInspector } from "../components/station/StationInspector";
 import { JourneyPlannerForm } from "../components/journey/JourneyPlannerForm";
 import { JourneySummaryCard } from "../components/journey/JourneySummaryCard";
 import { RouteTimeline } from "../components/journey/RouteTimeline";
@@ -15,11 +16,10 @@ import { useMetroRouter } from "../hooks/useMetroRouter";
 import { KOLKATA_LANDMARKS } from "../data/landmarks";
 import { GeocodingResult } from "../types/geo";
 import { MetroStation } from "../types/station";
-import { Compass, Navigation, Info } from "lucide-react";
-
-import { StationInfoModal } from "../components/station/StationInfoModal";
 import { RouteAlternativesSelector } from "../components/journey/RouteAlternativesSelector";
 import { RideHailCard } from "../components/journey/RideHailCard";
+import { Compass, Navigation, AlertCircle, ArrowRight } from "lucide-react";
+import clsx from "clsx";
 
 // Dynamically import Map component to prevent SSR window issues with MapLibre GL
 const MetroMap = dynamic(
@@ -27,10 +27,10 @@ const MetroMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-full min-h-[350px] bg-transit-bg flex items-center justify-center text-xs text-transit-muted font-mono">
+      <div className="w-full h-full min-h-[350px] bg-[#05080E] flex items-center justify-center text-xs text-slate-400 font-mono">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-metro-blue border-t-transparent rounded-full animate-spin" />
-          <span>Initializing Kolkata Metro Map...</span>
+          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <span>INITIALIZING KOLKATA METRO CARTOGRAPHY...</span>
         </div>
       </div>
     ),
@@ -39,7 +39,8 @@ const MetroMap = dynamic(
 
 export default function Home() {
   const [activeMode, setActiveMode] = useState<NavigationMode>("nearest");
-  const [modalStation, setModalStation] = useState<MetroStation | null>(null);
+  const [inspectedStation, setInspectedStation] = useState<MetroStation | null>(null);
+  const [selectedSegmentIndex, setSelectedSegmentIndex] = useState<number | null>(null);
 
   // Mode 1: Nearest Metro State Hook
   const {
@@ -80,7 +81,7 @@ export default function Home() {
     };
     setOrigin(stationGeo);
     setActiveMode("journey");
-    setModalStation(null);
+    setInspectedStation(null);
   };
 
   // Handler to bridge Station -> Destination
@@ -95,7 +96,7 @@ export default function Home() {
     };
     setDestination(stationGeo);
     setActiveMode("journey");
-    setModalStation(null);
+    setInspectedStation(null);
   };
 
   // Handler for quick presets in Journey Planner
@@ -110,29 +111,49 @@ export default function Home() {
   // Station click from map
   const handleMapStationSelect = (station: MetroStation) => {
     selectStation(station);
-    setModalStation(station);
+    setInspectedStation(station);
   };
 
   // Render left panel navigation contents
   const renderSidebarContent = () => {
-    if (activeMode === "nearest") {
+    // If a station is actively inspected, display the Station Inspector contextually
+    if (inspectedStation) {
       return (
         <div className="space-y-4">
-          {/* Search Header */}
+          <StationInspector
+            station={inspectedStation}
+            onClose={() => setInspectedStation(null)}
+            onSetOrigin={handlePlanFromStation}
+            onSetDestination={handlePlanToStation}
+          />
+        </div>
+      );
+    }
+
+    if (activeMode === "nearest") {
+      return (
+        <div className="space-y-5">
+          {/* Editorial Search Header */}
           <div className="space-y-1">
-            <h2 className="text-xl font-bold tracking-tight text-transit-text font-sans">
-              Where are you headed?
+            <span className="text-[10px] font-mono tracking-widest uppercase text-slate-400 font-bold">
+              NEAREST METRO DISCOVERY
+            </span>
+            <h2 className="text-xl font-bold tracking-tight text-white font-sans">
+              Where are you in Kolkata?
             </h2>
-            <p className="text-xs text-transit-muted">
-              Enter any place or landmark in Kolkata to find the nearest metro station.
+            <p className="text-xs text-slate-400">
+              Enter any landmark, railway station, or street to find pedestrian-routed metro access.
             </p>
           </div>
 
           {/* Primary Search Bar */}
           <SearchBar
-            placeholder="e.g. Victoria Memorial, College Street, Sector V..."
+            placeholder="e.g. Victoria Memorial, Howrah Station, Science City..."
             selectedLocation={selectedLocation}
-            onLocationSelect={setLocation}
+            onLocationSelect={(loc) => {
+              setLocation(loc);
+              setInspectedStation(null);
+            }}
             autoFocus
           />
 
@@ -140,16 +161,19 @@ export default function Home() {
           {recommendedStation ? (
             <div className="space-y-3 pt-2">
               {isReranking && (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-blue-950/40 border border-blue-800/40 text-[11px] text-blue-300 font-mono animate-pulse">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-950/40 border border-blue-800/40 text-[11px] text-blue-300 font-mono animate-pulse">
                   <div className="w-2.5 h-2.5 rounded-full border border-blue-400 border-t-transparent animate-spin" />
-                  <span>Calculating pedestrian walking access...</span>
+                  <span>Calculating real pedestrian street routing...</span>
                 </div>
               )}
 
               <NearestStationCard
                 result={recommendedStation}
                 isSelected={selectedStation?.id === recommendedStation.station.id}
-                onSelectStation={() => selectStation(recommendedStation.station)}
+                onSelectStation={() => {
+                  selectStation(recommendedStation.station);
+                  setInspectedStation(recommendedStation.station);
+                }}
                 onPlanFromStation={() => handlePlanFromStation(recommendedStation.station)}
               />
 
@@ -159,37 +183,37 @@ export default function Home() {
                   selectedStationId={selectedStation?.id}
                   onSelectStation={(st) => {
                     selectStation(st);
-                    setModalStation(st);
+                    setInspectedStation(st);
                   }}
                 />
               )}
             </div>
           ) : (
-            <div className="pt-6 text-center space-y-3 border-t border-transit-border">
-              <div className="w-10 h-10 rounded-full bg-transit-card border border-transit-border flex items-center justify-center mx-auto text-transit-muted">
-                <Compass className="w-5 h-5" />
+            <div className="pt-8 text-center space-y-3 border-t border-slate-800/80">
+              <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-blue-400 shadow-md">
+                <Compass className="w-6 h-6" />
               </div>
               <div className="space-y-1">
-                <p className="text-xs font-medium text-transit-text">
-                  Discover Nearest Metro Stations
-                </p>
-                <p className="text-[11px] text-transit-muted max-w-xs mx-auto">
-                  Type a landmark above or click &quot;Use my location&quot; to find surrounding stations with walk distance estimates.
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono">
+                  KOLKATA MOVES DIFFERENTLY
+                </h3>
+                <p className="text-xs text-slate-400 max-w-xs mx-auto">
+                  Find the nearest Metro. Plan across lines. Connect the last mile.
                 </p>
               </div>
 
               {/* Sample landmark shortcuts */}
-              <div className="pt-2">
-                <p className="text-[10px] uppercase font-mono tracking-wider text-transit-muted mb-2">
-                  Popular Landmarks
+              <div className="pt-3">
+                <p className="text-[10px] uppercase font-mono tracking-wider text-slate-500 mb-2 font-semibold">
+                  Popular Kolkata Landmarks
                 </p>
                 <div className="flex flex-wrap gap-1.5 justify-center">
-                  {KOLKATA_LANDMARKS.slice(0, 4).map((lm) => (
+                  {KOLKATA_LANDMARKS.slice(0, 5).map((lm) => (
                     <button
                       key={lm.id}
                       type="button"
                       onClick={() => setLocation(lm)}
-                      className="text-[11px] px-2.5 py-1 rounded bg-transit-card border border-transit-border hover:border-metro-blue/60 text-transit-muted hover:text-transit-text transition-colors"
+                      className="text-xs px-3 py-1 rounded-lg bg-slate-900 border border-slate-800 hover:border-blue-500/60 text-slate-300 hover:text-white transition-all active:scale-[0.98]"
                     >
                       {lm.name}
                     </button>
@@ -207,11 +231,14 @@ export default function Home() {
       <div className="space-y-4">
         {/* Header */}
         <div className="space-y-1">
-          <h2 className="text-xl font-bold tracking-tight text-transit-text font-sans">
+          <span className="text-[10px] font-mono tracking-widest uppercase text-emerald-400 font-bold">
+            DOOR-TO-DOOR TRANSIT
+          </span>
+          <h2 className="text-xl font-bold tracking-tight text-white font-sans">
             Plan Metro Journey
           </h2>
-          <p className="text-xs text-transit-muted">
-            Find the fastest route, line transfers, and walking legs between any two places.
+          <p className="text-xs text-slate-400">
+            Intelligent routing across Blue, Green, Purple, Orange & Yellow lines.
           </p>
         </div>
 
@@ -219,8 +246,14 @@ export default function Home() {
         <JourneyPlannerForm
           origin={origin}
           destination={destination}
-          onOriginSelect={setOrigin}
-          onDestinationSelect={setDestination}
+          onOriginSelect={(loc) => {
+            setOrigin(loc);
+            setInspectedStation(null);
+          }}
+          onDestinationSelect={(loc) => {
+            setDestination(loc);
+            setInspectedStation(null);
+          }}
           onSwap={swapOriginDestination}
           onQuickPreset={handleQuickPreset}
         />
@@ -240,24 +273,32 @@ export default function Home() {
         {route ? (
           <div className="space-y-4 pt-1">
             <JourneySummaryCard route={route} />
-            <RouteTimeline route={route} />
+            <RouteTimeline
+              route={route}
+              onSelectSegment={(idx) => setSelectedSegmentIndex(idx)}
+            />
             {rideHail && <RideHailCard rideHail={rideHail} />}
           </div>
         ) : origin && destination ? (
-          <div className="p-4 rounded-lg bg-amber-950/20 border border-amber-800/40 text-xs text-amber-300 flex items-center gap-2">
-            <Info className="w-4 h-4 shrink-0" />
-            <span>No direct or transfer route found between the selected locations on the current operational dataset.</span>
+          <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-800/40 text-xs text-amber-300 flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div>
+              <strong className="block font-bold mb-0.5">NO PRACTICAL ROUTE FOUND</strong>
+              <span>
+                We couldn&apos;t connect these locations using the currently operational network. Try searching for another nearby station or landmark.
+              </span>
+            </div>
           </div>
         ) : (
-          <div className="pt-6 text-center space-y-2 border-t border-transit-border">
-            <div className="w-10 h-10 rounded-full bg-transit-card border border-transit-border flex items-center justify-center mx-auto text-transit-muted">
-              <Navigation className="w-5 h-5" />
+          <div className="pt-8 text-center space-y-2 border-t border-slate-800">
+            <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto text-emerald-400 shadow-md">
+              <Navigation className="w-6 h-6" />
             </div>
-            <p className="text-xs font-medium text-transit-text">
-              Select Origin and Destination
+            <p className="text-xs font-bold text-white font-mono uppercase tracking-wider">
+              Select Origin & Destination
             </p>
-            <p className="text-[11px] text-transit-muted max-w-xs mx-auto">
-              Choose two landmarks or stations to compute the transit path, interchange nodes, and station stops.
+            <p className="text-xs text-slate-400 max-w-xs mx-auto">
+              Choose two points to calculate multi-line transit paths, verified interchanges, and pedestrian legs.
             </p>
           </div>
         )}
@@ -265,24 +306,32 @@ export default function Home() {
     );
   };
 
+  const isJourneyActive = !!route;
+
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-transit-bg text-transit-text">
+    <div className="flex flex-col h-screen overflow-hidden bg-[#05080E] text-slate-100 font-sans">
       {/* Top Brand Header */}
       <Header activeMode={activeMode} onModeChange={setActiveMode} />
 
-      {/* Main Split Layout Container */}
+      {/* Main Responsive Split Layout */}
       <div className="relative flex-1 flex overflow-hidden">
-        {/* Desktop Sidebar (Left 420px) */}
-        <aside className="hidden lg:flex w-[430px] flex-col border-r border-transit-border bg-transit-bg z-20 overflow-y-auto p-5 shadow-xl">
+        {/* Desktop Sidebar: 34% Discovery Mode -> 42% Journey Mode */}
+        <aside
+          className={clsx(
+            "hidden lg:flex flex-col border-r border-slate-800 bg-slate-950 z-20 overflow-y-auto p-5 shadow-2xl transition-all duration-300 ease-in-out",
+            isJourneyActive ? "w-[42%] max-w-[560px]" : "w-[34%] max-w-[460px]"
+          )}
+        >
           {renderSidebarContent()}
         </aside>
 
-        {/* Map Canvas (Right / Full View) */}
+        {/* Map Canvas */}
         <main className="flex-1 relative h-full">
           <MetroMap
             selectedStation={selectedStation}
             searchedLocation={selectedLocation || origin || destination}
             activeRoute={route}
+            selectedSegmentIndex={selectedSegmentIndex}
             onStationSelect={handleMapStationSelect}
             walkingGeometry={
               selectedStation
@@ -294,22 +343,24 @@ export default function Home() {
           />
         </main>
 
-        {/* Mobile Bottom Sheet Drawer */}
+        {/* Mobile 3-Tier Bottom Sheet */}
         <MobileDrawer
-          headerTitle={activeMode === "nearest" ? "Find Nearest Metro" : "Plan Metro Journey"}
+          headerTitle={
+            activeMode === "nearest"
+              ? "Find Nearest Metro"
+              : route
+              ? `${route.totalTravelMinutes} MIN · ${route.linesUsed.map((l) => l.toUpperCase()).join(" → ")}`
+              : "Plan Metro Journey"
+          }
+          peekSubtitle={
+            route
+              ? `${route.totalStops} stops · ${route.interchangeCount} transfer`
+              : undefined
+          }
         >
           {renderSidebarContent()}
         </MobileDrawer>
       </div>
-
-      {/* Interactive Station Inspection Modal */}
-      <StationInfoModal
-        station={modalStation}
-        onClose={() => setModalStation(null)}
-        onSetOrigin={handlePlanFromStation}
-        onSetDestination={handlePlanToStation}
-      />
     </div>
   );
 }
-

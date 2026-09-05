@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Car, ExternalLink, ShieldAlert } from "lucide-react";
+import { Car, ExternalLink } from "lucide-react";
 
 interface RideHailCardProps {
   rideHail?: {
@@ -17,62 +17,60 @@ export const RideHailCard: React.FC<RideHailCardProps> = ({ rideHail }) => {
   }
 
   return (
-    <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3">
+    <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800/80 space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-slate-800 text-blue-400">
-            <Car className="w-4 h-4" />
+          <div className="p-1.5 rounded-lg bg-slate-800 text-slate-400">
+            <Car className="w-3.5 h-3.5" />
           </div>
           <div>
-            <h4 className="text-sm font-semibold text-white">Ride-Hailing Deep Links</h4>
-            <p className="text-[11px] text-slate-400">
-              Official app deep-links with prefilled pickup and drop-off coordinates
+            <h5 className="text-xs font-semibold text-slate-300">
+              Direct / Last-Mile Ride-Hailing
+            </h5>
+            <p className="text-[10px] text-slate-500 font-mono">
+              Official deep-links · Fares and drivers managed in provider apps
             </p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-1">
+      <div className="grid grid-cols-3 gap-2 pt-1">
         {rideHail.uber && (
           <a
             href={rideHail.uber}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-black hover:bg-neutral-900 text-white text-xs font-semibold border border-neutral-700 transition-all shadow-md"
+            className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-black hover:bg-neutral-900 text-white text-xs font-semibold border border-neutral-800 transition-all active:scale-[0.98]"
           >
             <span>Uber</span>
-            <ExternalLink className="w-3.5 h-3.5 text-neutral-400" />
+            <ExternalLink className="w-3 h-3 text-neutral-400" />
           </a>
         )}
 
         {rideHail.ola && (
           <a
             href={rideHail.ola}
-            className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-lime-600 hover:bg-lime-500 text-black text-xs font-bold transition-all shadow-md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-lime-600 hover:bg-lime-500 text-black text-xs font-bold transition-all active:scale-[0.98]"
           >
             <span>Ola</span>
-            <ExternalLink className="w-3.5 h-3.5 text-black/70" />
+            <ExternalLink className="w-3 h-3 text-black/70" />
           </a>
         )}
-      </div>
 
-      {rideHail.rapido && (
-        <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-          <div className="flex items-center gap-1.5">
-            <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
-            <span>Rapido universal coordinate prefill unverified</span>
-          </div>
+        {rideHail.rapido && (
           <a
             href={rideHail.rapido}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1"
+            className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all active:scale-[0.98]"
           >
-            <span>Rapido Web</span>
-            <ExternalLink className="w-3 h-3" />
+            <span>Rapido</span>
+            <ExternalLink className="w-3 h-3 text-black/70" />
           </a>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

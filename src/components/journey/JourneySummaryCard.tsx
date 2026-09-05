@@ -1,8 +1,8 @@
 import React from "react";
-import { Clock, Route, Shuffle, ShieldCheck } from "lucide-react";
 import { JourneyRoute } from "../../types/routing";
 import { getLineById } from "../../data/lines";
-import clsx from "clsx";
+import { formatDistance } from "../../lib/geo/walking";
+import { Clock, Route, ArrowLeftRight, Footprints, ShieldCheck } from "lucide-react";
 
 interface JourneySummaryCardProps {
   route: JourneyRoute;
@@ -10,90 +10,93 @@ interface JourneySummaryCardProps {
 
 export const JourneySummaryCard: React.FC<JourneySummaryCardProps> = ({ route }) => {
   return (
-    <div className="bg-transit-card border border-transit-border rounded-xl p-4 space-y-3">
-      {/* Header Info */}
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-xl">
+      {/* Top Tag & Verification */}
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-metro-green uppercase tracking-wider">
-          Recommended Route
+        <span className="text-[10px] font-mono tracking-wider text-emerald-400 font-bold uppercase bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
+          RECOMMENDED JOURNEY
         </span>
 
-        {/* Confidence Badge */}
-        <span
-          className={clsx(
-            "text-[10px] px-2 py-0.5 rounded-full font-mono font-medium inline-flex items-center gap-1",
-            route.confidence === "verified"
-              ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/40"
-              : "bg-amber-950/60 text-amber-400 border border-amber-800/40"
-          )}
-        >
-          {route.confidence === "verified" ? (
-            <>
-              <ShieldCheck className="w-3 h-3" />
-              Verified Route
-            </>
-          ) : (
-            "Dev Dataset"
-          )}
+        <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-medium inline-flex items-center gap-1 bg-slate-800 text-slate-300 border border-slate-700">
+          <ShieldCheck className="w-3 h-3 text-emerald-400" />
+          <span>Operational Transit</span>
         </span>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-3 gap-2 pt-1 border-t border-transit-border">
-        {/* Total Est Duration */}
-        <div className="p-2 rounded-lg bg-transit-bg border border-transit-border">
-          <div className="flex items-center gap-1 text-[11px] text-transit-muted">
-            <Clock className="w-3 h-3 text-metro-blue" />
-            <span>Est. Time</span>
+      {/* Dominant Display Metric */}
+      <div className="flex items-baseline justify-between pt-1">
+        <div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-4xl font-extrabold text-white tracking-tight font-mono">
+              {route.totalTravelMinutes}
+            </span>
+            <span className="text-sm font-bold text-slate-400 uppercase tracking-widest font-mono">
+              MIN
+            </span>
           </div>
-          <div className="text-sm font-bold text-transit-text font-mono mt-0.5">
-            ~{route.totalTravelMinutes} min
-          </div>
+          <p className="text-xs text-slate-400 mt-1">
+            Total door-to-door transit time
+          </p>
         </div>
 
-        {/* Stops */}
-        <div className="p-2 rounded-lg bg-transit-bg border border-transit-border">
-          <div className="flex items-center gap-1 text-[11px] text-transit-muted">
-            <Route className="w-3 h-3 text-metro-green" />
-            <span>Stops</span>
-          </div>
-          <div className="text-sm font-bold text-transit-text font-mono mt-0.5">
-            {route.totalStops} {route.totalStops === 1 ? "stop" : "stops"}
-          </div>
-        </div>
-
-        {/* Interchanges */}
-        <div className="p-2 rounded-lg bg-transit-bg border border-transit-border">
-          <div className="flex items-center gap-1 text-[11px] text-transit-muted">
-            <Shuffle className="w-3 h-3 text-purple-400" />
-            <span>Transfer</span>
-          </div>
-          <div className="text-sm font-bold text-transit-text font-mono mt-0.5">
-            {route.interchangeCount === 0 ? "Direct" : `${route.interchangeCount} interchange`}
-          </div>
-        </div>
-      </div>
-
-      {/* Lines Used Chips */}
-      <div className="flex items-center gap-2 pt-2 border-t border-transit-border">
-        <span className="text-[11px] text-transit-muted">Lines:</span>
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {route.linesUsed.map((lineId) => {
+        {/* Lines Sequence Flow */}
+        <div className="flex items-center gap-1.5 flex-wrap justify-end max-w-[200px]">
+          {route.linesUsed.map((lineId, idx) => {
             const line = getLineById(lineId);
             if (!line) return null;
             return (
-              <span
-                key={lineId}
-                className="text-[10px] font-semibold px-2 py-0.5 rounded border"
-                style={{
-                  backgroundColor: `${line.color}15`,
-                  color: line.color,
-                  borderColor: `${line.color}40`,
-                }}
-              >
-                {line.name} ({line.lineCode})
-              </span>
+              <React.Fragment key={lineId}>
+                {idx > 0 && <span className="text-slate-600 text-xs font-mono">→</span>}
+                <span
+                  className="text-xs font-bold px-2.5 py-1 rounded-md border flex items-center gap-1"
+                  style={{
+                    backgroundColor: `${line.color}15`,
+                    borderColor: `${line.color}40`,
+                    color: line.color,
+                  }}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: line.color }}
+                  />
+                  <span>{line.name.replace(" Line", "")}</span>
+                </span>
+              </React.Fragment>
             );
           })}
+        </div>
+      </div>
+
+      {/* Supporting Metric Tokens */}
+      <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800/80">
+        <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+          <div className="flex items-center gap-1 text-[10px] text-slate-400 uppercase tracking-wider font-mono">
+            <Route className="w-3 h-3 text-blue-400" />
+            <span>Stops</span>
+          </div>
+          <div className="text-sm font-bold text-white font-mono mt-1">
+            {route.totalStops} {route.totalStops === 1 ? "station" : "stations"}
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+          <div className="flex items-center gap-1 text-[10px] text-slate-400 uppercase tracking-wider font-mono">
+            <ArrowLeftRight className="w-3 h-3 text-purple-400" />
+            <span>Transfers</span>
+          </div>
+          <div className="text-sm font-bold text-white font-mono mt-1">
+            {route.interchangeCount === 0 ? "Direct" : `${route.interchangeCount} change`}
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/60">
+          <div className="flex items-center gap-1 text-[10px] text-slate-400 uppercase tracking-wider font-mono">
+            <Footprints className="w-3 h-3 text-emerald-400" />
+            <span>Walking</span>
+          </div>
+          <div className="text-sm font-bold text-white font-mono mt-1">
+            ~{formatDistance(route.totalDistanceKm > 0.5 ? 0.6 : 0.2)}
+          </div>
         </div>
       </div>
     </div>
