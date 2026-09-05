@@ -15,6 +15,13 @@
       "when": 1788621090590,
       "tag": "0001_sad_puma",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788625208924,
+      "tag": "0002_acoustic_meltdown",
+      "breakpoints": true
     }
   ]
 }

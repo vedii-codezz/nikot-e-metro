@@ -104,8 +104,17 @@ export async function verifyDatabaseIntegrity(): Promise<boolean> {
     const landmarks = await db.select().from(schema.landmarks);
     console.log(`✅ Found ${landmarks.length} curated landmarks in PostgreSQL.`);
 
-    // 8. Test Graph Construction from Database
-    console.log("\n8. Testing Graph construction from live PostgreSQL records...");
+    // 8. Query Bus and Informal Transit
+    console.log("\n8. Verifying bus and informal transit tables...");
+    const [bRoutes, bStops, iStands] = await Promise.all([
+      db.select().from(schema.busRoutes),
+      db.select().from(schema.busStops),
+      db.select().from(schema.informalTransitStands),
+    ]);
+    console.log(`✅ Found ${bRoutes.length} bus routes, ${bStops.length} bus stops, and ${iStands.length} informal transit stands in PostgreSQL.`);
+
+    // 9. Test Graph Construction from Database
+    console.log("\n9. Testing Graph construction from live PostgreSQL records...");
     const stationRepo = new StationRepository();
     const mappedStations = await stationRepo.getAllStations();
     const graph = buildMetroGraph(mappedStations);

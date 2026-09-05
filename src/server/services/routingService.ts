@@ -4,9 +4,19 @@ import { getServerMetroGraph } from "../routing/graph";
 import { planFullJourney } from "../../lib/routing/dijkstra";
 import { pedestrianService } from "../pedestrian/pedestrianService";
 import { haversineDistanceKm } from "../../lib/geo/haversine";
+import { multimodalRouter, MultimodalPlanResult } from "../journey/multimodalRouter";
 
 export class RoutingService {
+  async planMultimodalRoute(request: RouteRequest): Promise<MultimodalPlanResult | null> {
+    return multimodalRouter.planMultimodalRoute(request);
+  }
+
   async planRoute(request: RouteRequest): Promise<JourneyRoute | null> {
+    const multiPlan = await this.planMultimodalRoute(request);
+    if (multiPlan) {
+      return multiPlan.primaryRoute;
+    }
+
     const { graph, stations } = await getServerMetroGraph();
 
     const origin = {
@@ -82,3 +92,4 @@ export class RoutingService {
 }
 
 export const routingService = new RoutingService();
+

@@ -6,9 +6,9 @@ import { StationConnection, MetroStation } from "../src/types/station";
 
 test("Operational Graph: Filters out planned connections and keeps operational connections", () => {
   const stations: MetroStation[] = [
-    { id: "A", name: "Station A", lineIds: ["line1"], coordinates: { latitude: 22.5, longitude: 88.3 }, isInterchange: false, confidence: "development" },
-    { id: "B", name: "Station B", lineIds: ["line1"], coordinates: { latitude: 22.6, longitude: 88.3 }, isInterchange: false, confidence: "development" },
-    { id: "C", name: "Station C", lineIds: ["line1"], coordinates: { latitude: 22.7, longitude: 88.3 }, isInterchange: false, confidence: "development" },
+    { id: "A", name: "Station A", lineIds: ["blue"], coordinates: { latitude: 22.5, longitude: 88.3 }, isInterchange: false, confidence: "development" },
+    { id: "B", name: "Station B", lineIds: ["blue"], coordinates: { latitude: 22.6, longitude: 88.3 }, isInterchange: false, confidence: "development" },
+    { id: "C", name: "Station C", lineIds: ["blue"], coordinates: { latitude: 22.7, longitude: 88.3 }, isInterchange: false, confidence: "development" },
   ];
 
   const connections: StationConnection[] = [
@@ -16,7 +16,7 @@ test("Operational Graph: Filters out planned connections and keeps operational c
       id: "conn_AB",
       fromStationId: "A",
       toStationId: "B",
-      lineId: "line1",
+      lineId: "blue",
       distanceMeters: 2000,
       estimatedTravelSeconds: 180,
       verified: true,
@@ -27,7 +27,7 @@ test("Operational Graph: Filters out planned connections and keeps operational c
       id: "conn_BC",
       fromStationId: "B",
       toStationId: "C",
-      lineId: "line1",
+      lineId: "blue",
       distanceMeters: 2000,
       estimatedTravelSeconds: 180,
       verified: true,
@@ -63,14 +63,14 @@ test("Operational Graph: Interchanges respect routingStatus", () => {
     {
       id: "X1",
       name: "Transfer X (Line 1)",
-      lineIds: ["line1"],
+      lineIds: ["blue"],
       coordinates: { latitude: 22.5, longitude: 88.3 },
       isInterchange: true,
       confidence: "development",
       interchangeConnections: [
         {
           targetStationId: "X2",
-          targetLineId: "line2",
+          targetLineId: "green",
           estimatedTransferMinutes: 5,
           confidence: "development",
           routingStatus: "unavailable", // Unavailable interchange
@@ -80,7 +80,7 @@ test("Operational Graph: Interchanges respect routingStatus", () => {
     {
       id: "X2",
       name: "Transfer X (Line 2)",
-      lineIds: ["line2"],
+      lineIds: ["green"],
       coordinates: { latitude: 22.5, longitude: 88.3 },
       isInterchange: true,
       confidence: "development",

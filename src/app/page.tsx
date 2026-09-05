@@ -17,6 +17,10 @@ import { GeocodingResult } from "../types/geo";
 import { MetroStation } from "../types/station";
 import { Compass, Navigation, Info } from "lucide-react";
 
+import { StationInfoModal } from "../components/station/StationInfoModal";
+import { RouteAlternativesSelector } from "../components/journey/RouteAlternativesSelector";
+import { RideHailCard } from "../components/journey/RideHailCard";
+
 // Dynamically import Map component to prevent SSR window issues with MapLibre GL
 const MetroMap = dynamic(
   () => import("../components/map/MetroMap").then((mod) => mod.MetroMap),
@@ -35,6 +39,7 @@ const MetroMap = dynamic(
 
 export default function Home() {
   const [activeMode, setActiveMode] = useState<NavigationMode>("nearest");
+  const [modalStation, setModalStation] = useState<MetroStation | null>(null);
 
   // Mode 1: Nearest Metro State Hook
   const {
@@ -52,12 +57,18 @@ export default function Home() {
     origin,
     destination,
     route,
+    candidates,
+    selectedCandidate,
+    preference,
+    rideHail,
     setOrigin,
     setDestination,
+    setPreference,
+    selectCandidate,
     swapOriginDestination,
   } = useMetroRouter();
 
-  // Handler to bridge Nearest Station -> Journey Planner
+  // Handler to bridge Station -> Origin
   const handlePlanFromStation = (station: MetroStation) => {
     const stationGeo: GeocodingResult = {
       id: `st_${station.id}`,
@@ -69,6 +80,22 @@ export default function Home() {
     };
     setOrigin(stationGeo);
     setActiveMode("journey");
+    setModalStation(null);
+  };
+
+  // Handler to bridge Station -> Destination
+  const handlePlanToStation = (station: MetroStation) => {
+    const stationGeo: GeocodingResult = {
+      id: `st_${station.id}`,
+      name: `${station.name} Metro Station`,
+      bengaliName: station.bengaliName,
+      coordinates: station.coordinates,
+      type: "station",
+      source: "station",
+    };
+    setDestination(stationGeo);
+    setActiveMode("journey");
+    setModalStation(null);
   };
 
   // Handler for quick presets in Journey Planner
@@ -83,6 +110,7 @@ export default function Home() {
   // Station click from map
   const handleMapStationSelect = (station: MetroStation) => {
     selectStation(station);
+    setModalStation(station);
   };
 
   // Render left panel navigation contents
@@ -129,7 +157,10 @@ export default function Home() {
                 <NearbyStationsList
                   stations={secondaryStations}
                   selectedStationId={selectedStation?.id}
-                  onSelectStation={selectStation}
+                  onSelectStation={(st) => {
+                    selectStation(st);
+                    setModalStation(st);
+                  }}
                 />
               )}
             </div>
@@ -194,11 +225,23 @@ export default function Home() {
           onQuickPreset={handleQuickPreset}
         />
 
+        {/* Route Alternatives & Optimization Preference Selector */}
+        {(candidates.length > 0 || (origin && destination)) && (
+          <RouteAlternativesSelector
+            currentPreference={preference}
+            onSelectPreference={setPreference}
+            candidates={candidates}
+            selectedCandidateId={selectedCandidate?.id || null}
+            onSelectCandidate={selectCandidate}
+          />
+        )}
+
         {/* Calculated Journey Summary & Timeline */}
         {route ? (
           <div className="space-y-4 pt-1">
             <JourneySummaryCard route={route} />
             <RouteTimeline route={route} />
+            {rideHail && <RideHailCard rideHail={rideHail} />}
           </div>
         ) : origin && destination ? (
           <div className="p-4 rounded-lg bg-amber-950/20 border border-amber-800/40 text-xs text-amber-300 flex items-center gap-2">
@@ -258,6 +301,15 @@ export default function Home() {
           {renderSidebarContent()}
         </MobileDrawer>
       </div>
+
+      {/* Interactive Station Inspection Modal */}
+      <StationInfoModal
+        station={modalStation}
+        onClose={() => setModalStation(null)}
+        onSetOrigin={handlePlanFromStation}
+        onSetDestination={handlePlanToStation}
+      />
     </div>
   );
 }
+

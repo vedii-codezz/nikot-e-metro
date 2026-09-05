@@ -2,6 +2,8 @@ import { getDb, schema } from "./index";
 import { METRO_LINES } from "../data/lines";
 import { METRO_STATIONS } from "../data/stations";
 import { KOLKATA_LANDMARKS } from "../data/landmarks";
+import { VERIFIED_BUS_STOPS, VERIFIED_BUS_ROUTES } from "../data/busRoutes";
+import { VERIFIED_INFORMAL_STANDS } from "../data/informalTransit";
 import { haversineDistanceKm } from "../lib/geo/haversine";
 
 export interface SeedSummary {
@@ -63,6 +65,8 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
     if (station.confidence === "verified") verifiedStationsCount++;
     else developmentStationsCount++;
 
+    const stationStatus = station.status || "operational";
+
     await db
       .insert(schema.metroStations)
       .values({
@@ -72,7 +76,7 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
         bengaliName: station.bengaliName,
         latitude: station.coordinates.latitude,
         longitude: station.coordinates.longitude,
-        status: "operational",
+        status: stationStatus,
         dataConfidence: station.confidence,
         openedYear: station.openedYear,
         sourceName:
@@ -85,6 +89,7 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
           bengaliName: station.bengaliName,
           latitude: station.coordinates.latitude,
           longitude: station.coordinates.longitude,
+          status: stationStatus,
           dataConfidence: station.confidence,
           openedYear: station.openedYear,
           updatedAt: new Date(),
@@ -120,15 +125,13 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
       const connIdFwd = `conn_${line.id}_${u.id}_${v.id}`;
       const connIdRev = `conn_${line.id}_${v.id}_${u.id}`;
 
-      // In real operational Kolkata Metro topology, Green Line operates as two distinct sections:
-      // Howrah Maidan <-> Esplanade, and Sealdah <-> Salt Lake Sector V.
-      // The central Bowbazar link (Esplanade <-> Sealdah) is under construction/planned.
-      const isBowbazarUnlinked =
-        line.id === "green" &&
-        ((u.id === "esplanade_green" && v.id === "sealdah") ||
-         (u.id === "sealdah" && v.id === "esplanade_green"));
-
-      const connRoutingStatus = isBowbazarUnlinked ? "planned" : "operational";
+      // Connection routing status derives from station operational statuses
+      let connRoutingStatus: "operational" | "under_construction" | "planned" = "operational";
+      if (u.status === "planned" || v.status === "planned" || line.status === "under_construction") {
+        connRoutingStatus = "planned";
+      } else if (u.status === "under_construction" || v.status === "under_construction") {
+        connRoutingStatus = "under_construction";
+      }
 
       await db
         .insert(schema.stationConnections)
@@ -240,6 +243,68 @@ export async function seedDatabase(): Promise<SeedSummary | null> {
         },
       });
     landmarksCount++;
+  }
+
+  // 7. Seed Bus Stops & Routes
+  for (const bs of VERIFIED_BUS_STOPS) {
+    await db
+      .insert(schema.busStops)
+      .values({
+        id: bs.id,
+        name: bs.name,
+        bengaliName: bs.bengaliName,
+        latitude: bs.coordinates.latitude,
+        longitude: bs.coordinates.longitude,
+        dataConfidence: bs.dataConfidence,
+      })
+      .onConflictDoNothing();
+  }
+
+  for (const br of VERIFIED_BUS_ROUTES) {
+    await db
+      .insert(schema.busRoutes)
+      .values({
+        id: br.id,
+        routeNumber: br.routeNumber,
+        originName: br.originName,
+        destinationName: br.destinationName,
+        operator: br.operator,
+        dataConfidence: br.dataConfidence,
+        sourceName: br.sourceName,
+        sourceUrl: br.sourceUrl,
+        verifiedAt: br.verifiedAt,
+      })
+      .onConflictDoNothing();
+
+    for (let i = 0; i < br.stopIds.length; i++) {
+      await db
+        .insert(schema.busRouteStops)
+        .values({
+          id: `brs_${br.id}_${br.stopIds[i]}`,
+          routeId: br.id,
+          stopId: br.stopIds[i],
+          stopOrder: i + 1,
+        })
+        .onConflictDoNothing();
+    }
+  }
+
+  // 8. Seed Informal Transit Stands
+  for (const stand of VERIFIED_INFORMAL_STANDS) {
+    await db
+      .insert(schema.informalTransitStands)
+      .values({
+        id: stand.id,
+        name: stand.name,
+        type: stand.type,
+        latitude: stand.coordinates.latitude,
+        longitude: stand.coordinates.longitude,
+        nearbyMetroStationId: stand.nearbyMetroStationId,
+        routesServed: stand.routesServed,
+        dataConfidence: stand.dataConfidence,
+        sourceName: stand.sourceName,
+      })
+      .onConflictDoNothing();
   }
 
   const summary: SeedSummary = {

@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const route = await routingService.planRoute(parsed.data);
+    const multiPlan = await routingService.planMultimodalRoute(parsed.data);
 
-    if (!route) {
+    if (!multiPlan) {
       return createErrorResponse(
         "ROUTE_NOT_FOUND",
         "No suitable metro route could be computed between the specified locations on the current operational network.",
@@ -35,7 +35,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       data: {
         mode: parsed.data.mode,
-        route,
+        route: multiPlan.primaryRoute,
+        multimodalCandidate: multiPlan.primaryCandidate,
+        alternatives: multiPlan.alternatives,
+        rideHail: multiPlan.rideHail,
       },
     });
   } catch (error) {

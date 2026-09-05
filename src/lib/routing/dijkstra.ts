@@ -201,9 +201,37 @@ export function findShortestPath(
       currentRideLine = toLine;
       currentRideMinutes = 0;
     } else {
-      if (!currentRideLine || currentRideLine !== step.lineId) {
+      if (!currentRideLine) {
         currentRideLine = step.lineId;
         linesUsedSet.add(currentRideLine);
+      } else if (currentRideLine !== step.lineId) {
+        // Line change at shared station (e.g. Noapara Yellow <-> Blue)
+        interchangeCount++;
+        if (currentRideStations.length >= 2) {
+          segments.push({
+            type: "metro_ride",
+            lineId: currentRideLine,
+            fromStation: currentRideStations[0],
+            toStation: currentRideStations[currentRideStations.length - 1],
+            stations: [...currentRideStations],
+            stopCount: currentRideStations.length - 1,
+            travelMinutes: Math.round(currentRideMinutes * 10) / 10,
+            confidence: allVerified ? "verified" : "development",
+          });
+        }
+        const transferStation = currentRideStations[currentRideStations.length - 1] || station;
+        segments.push({
+          type: "interchange",
+          atStation: transferStation,
+          fromLineId: currentRideLine,
+          toLineId: step.lineId,
+          estimatedTransferMinutes: 3,
+          confidence: transferStation.confidence,
+        });
+        currentRideStations = [transferStation];
+        currentRideLine = step.lineId;
+        linesUsedSet.add(currentRideLine);
+        currentRideMinutes = 0;
       }
       currentRideStations.push(station);
       currentRideMinutes += step.cost;
@@ -247,6 +275,10 @@ export function planFullJourney(
   origin: { name: string; coordinates?: Coordinates; stationId?: string },
   destination: { name: string; coordinates?: Coordinates; stationId?: string }
 ): JourneyRoute | null {
+  const operationalStations = stations.filter(
+    (s) => (s.status === undefined || s.status === "operational") && graph.stationsById.has(s.id)
+  );
+
   // 1. Resolve Origin Station
   let originStation: MetroStation | undefined;
   let firstMileWalk: FirstMileWalkSegment | undefined;
@@ -254,7 +286,7 @@ export function planFullJourney(
   if (origin.stationId) {
     originStation = graph.stationsById.get(origin.stationId);
   } else if (origin.coordinates) {
-    const nearby = rankNearbyStations(origin.coordinates, stations, 1);
+    const nearby = rankNearbyStations(origin.coordinates, operationalStations, 1);
     if (nearby.length > 0) {
       originStation = nearby[0].station;
       firstMileWalk = {
@@ -275,7 +307,7 @@ export function planFullJourney(
   if (destination.stationId) {
     destinationStation = graph.stationsById.get(destination.stationId);
   } else if (destination.coordinates) {
-    const nearby = rankNearbyStations(destination.coordinates, stations, 1);
+    const nearby = rankNearbyStations(destination.coordinates, operationalStations, 1);
     if (nearby.length > 0) {
       destinationStation = nearby[0].station;
       lastMileWalk = {

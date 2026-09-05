@@ -67,75 +67,131 @@ export const MetroMap: React.FC<MetroMapProps> = ({
 
   // Helper to render static metro lines and station nodes
   const renderNetworkLayers = useCallback((map: maplibregl.Map) => {
-    // 1. Build line GeoJSON separating operational vs planned sections (e.g. Green Line split)
+    // 1. Build line GeoJSON separating operational vs construction/planned sections
     const lineFeatures: any[] = [];
     const plannedLineFeatures: any[] = [];
 
-    METRO_LINES.forEach((line) => {
-      const lineStations = METRO_STATIONS.filter((s) => s.lineIds.includes(line.id));
+    // Helper to extract stations in order
+    const getOrderedStations = (ids: string[]) =>
+      ids.map((id) => METRO_STATIONS.find((s) => s.id === id)).filter(Boolean) as typeof METRO_STATIONS;
 
-      if (line.id === "green") {
-        // West Section: Howrah Maidan to Esplanade Green (operational)
-        const westStationIds = ["howrah_maidan", "howrah_railway_station", "mahakaran", "esplanade_green"];
-        const westStations = westStationIds
-          .map((id) => lineStations.find((s) => s.id === id))
-          .filter(Boolean) as typeof lineStations;
-        if (westStations.length > 1) {
-          lineFeatures.push({
-            type: "Feature" as const,
-            properties: { lineId: line.id, name: `${line.name} (West)`, color: line.color, status: "operational" },
-            geometry: {
-              type: "LineString" as const,
-              coordinates: westStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
-            },
-          });
-        }
+    // --- BLUE LINE: Operational ---
+    const blueStations = METRO_STATIONS.filter((s) => s.lineIds.includes("blue"));
+    if (blueStations.length > 1) {
+      lineFeatures.push({
+        type: "Feature" as const,
+        properties: { lineId: "blue", name: "Blue Line (North-South)", color: "#0072CE", status: "operational" },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: blueStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+        },
+      });
+    }
 
-        // East Section: Sealdah to Salt Lake Sector V (operational)
-        const eastStationIds = [
-          "sealdah", "phoolbagan", "salt_lake_stadium", "bengal_chemical",
-          "city_centre", "central_park", "karunamoyee", "salt_lake_sector_v"
-        ];
-        const eastStations = eastStationIds
-          .map((id) => lineStations.find((s) => s.id === id))
-          .filter(Boolean) as typeof lineStations;
-        if (eastStations.length > 1) {
-          lineFeatures.push({
-            type: "Feature" as const,
-            properties: { lineId: line.id, name: `${line.name} (East)`, color: line.color, status: "operational" },
-            geometry: {
-              type: "LineString" as const,
-              coordinates: eastStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
-            },
-          });
-        }
+    // --- GREEN LINE: Continuous Operational Corridor (Howrah Maidan to Sector V) ---
+    const greenOrder = [
+      "howrah_maidan", "howrah_railway_station", "mahakaran", "esplanade_green",
+      "sealdah", "phoolbagan", "salt_lake_stadium", "bengal_chemical",
+      "city_centre", "central_park", "karunamoyee", "salt_lake_sector_v"
+    ];
+    const greenStations = getOrderedStations(greenOrder);
+    if (greenStations.length > 1) {
+      lineFeatures.push({
+        type: "Feature" as const,
+        properties: { lineId: "green", name: "Green Line (East-West Continuous)", color: "#00A651", status: "operational" },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: greenStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+        },
+      });
+    }
 
-        // Bowbazar unlinked section (planned / non-operational link)
-        const esplanadeGreen = lineStations.find((s) => s.id === "esplanade_green");
-        const sealdah = lineStations.find((s) => s.id === "sealdah");
-        if (esplanadeGreen && sealdah) {
-          plannedLineFeatures.push({
-            type: "Feature" as const,
-            properties: { lineId: line.id, name: `${line.name} (Under Construction)`, color: line.color, status: "planned" },
-            geometry: {
-              type: "LineString" as const,
-              coordinates: [
-                [esplanadeGreen.coordinates.longitude, esplanadeGreen.coordinates.latitude],
-                [sealdah.coordinates.longitude, sealdah.coordinates.latitude],
-              ],
-            },
-          });
-        }
-      } else {
-        // Standard operational line
-        const coordinates = lineStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]);
-        lineFeatures.push({
-          type: "Feature" as const,
-          properties: { lineId: line.id, name: line.name, color: line.color, status: "operational" },
-          geometry: { type: "LineString" as const, coordinates },
-        });
-      }
-    });
+    // --- YELLOW LINE: Operational Section (Noapara to Jai Hind) ---
+    const yellowOrder = ["noapara", "dum_dum_cantonment", "jessore_road", "jai_hind"];
+    const yellowStations = getOrderedStations(yellowOrder);
+    if (yellowStations.length > 1) {
+      lineFeatures.push({
+        type: "Feature" as const,
+        properties: { lineId: "yellow", name: "Yellow Line (Noapara - Airport)", color: "#FCCC0A", status: "operational" },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: yellowStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+        },
+      });
+    }
+
+    // --- YELLOW LINE: Construction Extension (Jai Hind to Barasat) ---
+    const yellowConstOrder = ["jai_hind", "birati", "barasat"];
+    const yellowConstStations = getOrderedStations(yellowConstOrder);
+    if (yellowConstStations.length > 1) {
+      plannedLineFeatures.push({
+        type: "Feature" as const,
+        properties: { lineId: "yellow", name: "Yellow Line (Airport - Barasat Extension)", color: "#FCCC0A", status: "under_construction" },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: yellowConstStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+        },
+      });
+    }
+
+    // --- PURPLE LINE: Operational Section (Joka to Majerhat) ---
+    const purpleOrder = ["joka", "thakurpukur", "sakherbazar", "behala_chowrasta", "behala_bazar", "taratala", "majerhat"];
+    const purpleStations = getOrderedStations(purpleOrder);
+    if (purpleStations.length > 1) {
+      lineFeatures.push({
+        type: "Feature" as const,
+        properties: { lineId: "purple", name: "Purple Line", color: "#800080", status: "operational" },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: purpleStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+        },
+      });
+    }
+
+    // --- PURPLE LINE: Construction Section (Majerhat to Esplanade) ---
+    const purpleConstOrder = ["majerhat", "mominpur", "kidderpore", "victoria_purple", "esplanade"];
+    const purpleConstStations = getOrderedStations(purpleConstOrder);
+    if (purpleConstStations.length > 1) {
+      plannedLineFeatures.push({
+        type: "Feature" as const,
+        properties: { lineId: "purple", name: "Purple Line (Majerhat - Esplanade Extension)", color: "#800080", status: "under_construction" },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: purpleConstStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+        },
+      });
+    }
+
+    // --- ORANGE LINE: Operational Section (Kavi Subhash to Beleghata) ---
+    const orangeOrder = [
+      "kavi_subhash", "satyajit_ray", "jyotirindra_nandi", "kavi_sukanta",
+      "hemanta_mukhopadhyay", "vip_bazar", "ritwik_ghatak", "barun_sengupta", "beleghata"
+    ];
+    const orangeStations = getOrderedStations(orangeOrder);
+    if (orangeStations.length > 1) {
+      lineFeatures.push({
+        type: "Feature" as const,
+        properties: { lineId: "orange", name: "Orange Line (Kavi Subhash - Beleghata)", color: "#FF8000", status: "operational" },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: orangeStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+        },
+      });
+    }
+
+    // --- ORANGE LINE: Construction Extension (Beleghata to Airport) ---
+    const orangeConstOrder = ["beleghata", "gour_kishore_ghosh", "nalban", "chinar_park", "jai_hind"];
+    const orangeConstStations = getOrderedStations(orangeConstOrder);
+    if (orangeConstStations.length > 1) {
+      plannedLineFeatures.push({
+        type: "Feature" as const,
+        properties: { lineId: "orange", name: "Orange Line (Beleghata - Airport Extension)", color: "#FF8000", status: "under_construction" },
+        geometry: {
+          type: "LineString" as const,
+          coordinates: orangeConstStations.map((s) => [s.coordinates.longitude, s.coordinates.latitude]),
+        },
+      });
+    }
 
     const linesGeoJSON = { type: "FeatureCollection" as const, features: lineFeatures };
     const plannedLinesGeoJSON = { type: "FeatureCollection" as const, features: plannedLineFeatures };
@@ -155,7 +211,7 @@ export const MetroMap: React.FC<MetroMapProps> = ({
         },
       });
 
-      // Main line track
+      // Main line track (solid)
       map.addLayer({
         id: "metro-lines-layer",
         type: "line",
@@ -171,16 +227,16 @@ export const MetroMap: React.FC<MetroMapProps> = ({
     if (!map.getSource("metro-lines-planned")) {
       map.addSource("metro-lines-planned", { type: "geojson", data: plannedLinesGeoJSON });
 
-      // Planned line track (dashed)
+      // Planned / Under Construction line track (dashed + muted)
       map.addLayer({
         id: "metro-lines-planned-layer",
         type: "line",
         source: "metro-lines-planned",
         paint: {
           "line-color": ["get", "color"],
-          "line-width": 3,
-          "line-dasharray": [3, 3],
-          "line-opacity": 0.45,
+          "line-width": 3.5,
+          "line-dasharray": [3, 2.5],
+          "line-opacity": 0.65,
         },
       });
     }
@@ -188,6 +244,7 @@ export const MetroMap: React.FC<MetroMapProps> = ({
     // 2. Build station points GeoJSON
     const stationFeatures = METRO_STATIONS.map((station) => {
       const primaryLine = getLineById(station.lineIds[0]);
+      const isOperational = !station.status || station.status === "operational";
       return {
         type: "Feature" as const,
         properties: {
@@ -196,6 +253,8 @@ export const MetroMap: React.FC<MetroMapProps> = ({
           bengaliName: station.bengaliName || "",
           color: primaryLine?.color || "#FFFFFF",
           isInterchange: station.isInterchange,
+          isOperational,
+          status: station.status || "operational",
         },
         geometry: {
           type: "Point" as const,
@@ -221,21 +280,63 @@ export const MetroMap: React.FC<MetroMapProps> = ({
         type: "circle",
         source: "metro-stations",
         paint: {
-          "circle-radius": ["case", ["get", "isInterchange"], 7.5, 5],
-          "circle-color": "#0B0F17",
-          "circle-stroke-width": 2.5,
-          "circle-stroke-color": ["get", "color"],
+          "circle-radius": [
+            "case",
+            ["get", "isInterchange"],
+            8.5,
+            ["get", "isOperational"],
+            5.5,
+            4.0, // Construction smaller muted dot
+          ],
+          "circle-color": [
+            "case",
+            ["get", "isOperational"],
+            "#0B0F17",
+            "#1E293B",
+          ],
+          "circle-stroke-width": [
+            "case",
+            ["get", "isInterchange"],
+            3.5,
+            2.0,
+          ],
+          "circle-stroke-color": [
+            "case",
+            ["get", "isOperational"],
+            ["get", "color"],
+            "#64748B", // Muted for construction
+          ],
+          "circle-opacity": [
+            "case",
+            ["get", "isOperational"],
+            1.0,
+            0.6,
+          ],
         },
       });
 
-      // Station inner dot
+      // Station inner dot (distinct ◎ for interchange, white for operational)
       map.addLayer({
         id: "metro-stations-inner",
         type: "circle",
         source: "metro-stations",
         paint: {
-          "circle-radius": ["case", ["get", "isInterchange"], 3.5, 2],
-          "circle-color": "#FFFFFF",
+          "circle-radius": [
+            "case",
+            ["get", "isInterchange"],
+            4.0,
+            ["get", "isOperational"],
+            2.5,
+            1.5,
+          ],
+          "circle-color": [
+            "case",
+            ["get", "isInterchange"],
+            "#FFFFFF",
+            ["get", "isOperational"],
+            "#FFFFFF",
+            "#94A3B8",
+          ],
         },
       });
 

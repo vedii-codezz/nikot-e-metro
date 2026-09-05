@@ -2,9 +2,15 @@ import { Coordinates } from "./geo";
 
 export type DataConfidence = "verified" | "development" | "planned";
 
-export type RoutingStatus = "operational" | "unavailable" | "planned" | "unknown";
+export type RoutingStatus =
+  | "operational"
+  | "unavailable"
+  | "under_construction"
+  | "planned"
+  | "approved"
+  | "unknown";
 
-export type LineId = "blue" | "green" | "purple" | "orange" | "yellow";
+export type LineId = "blue" | "green" | "purple" | "orange" | "yellow" | "pink";
 
 export interface MetroLine {
   id: LineId;
@@ -47,6 +53,7 @@ export interface MetroStation {
   lineIds: LineId[];
   isInterchange: boolean;
   interchangeConnections?: InterchangeConnection[];
+  status?: RoutingStatus;
   confidence: DataConfidence;
   accessibility?: {
     elevator?: boolean;

@@ -54,6 +54,7 @@ export class StationRepository {
           lineIds: lines.length > 0 ? lines : ["blue"],
           isInterchange: stationInterchanges.length > 0,
           interchangeConnections: stationInterchanges.length > 0 ? stationInterchanges : undefined,
+          status: (rec.status as any) || "operational",
           confidence: rec.dataConfidence as any,
           openedYear: rec.openedYear || undefined,
         };
@@ -73,8 +74,12 @@ export class StationRepository {
     return stations.find((s) => s.id === id) || null;
   }
 
-  async findNearby(coords: Coordinates, limit: number = 5) {
-    const stations = await this.getAllStations();
+  async findNearby(coords: Coordinates, limit: number = 5, statusFilter: "operational" | "all" = "operational") {
+    const allStations = await this.getAllStations();
+    const stations =
+      statusFilter === "operational"
+        ? allStations.filter((s) => s.status === "operational" || s.status === undefined)
+        : allStations;
     const scored = stations.map((station) => {
       const distanceKm = haversineDistanceKm(coords, station.coordinates);
       const estimatedWalkMinutes = Math.max(1, Math.round((distanceKm / 4.8) * 60));
@@ -132,12 +137,12 @@ export class StationRepository {
         const distKm = haversineDistanceKm(u.coordinates, v.coordinates);
         const distMeters = Math.round(distKm * 1000);
         const seconds = Math.round((distKm / 32.0) * 3600 + 30);
-        const isBowbazar =
-          line.id === "green" &&
-          ((u.id === "esplanade_green" && v.id === "sealdah") ||
-           (u.id === "sealdah" && v.id === "esplanade_green"));
-
-        const routingStatus = isBowbazar ? "planned" : "operational";
+        let routingStatus: "operational" | "under_construction" | "planned" = "operational";
+        if (u.status === "planned" || v.status === "planned" || line.status === "under_construction") {
+          routingStatus = "planned";
+        } else if (u.status === "under_construction" || v.status === "under_construction") {
+          routingStatus = "under_construction";
+        }
 
         conns.push({
           id: `conn_${line.id}_${u.id}_${v.id}`,
